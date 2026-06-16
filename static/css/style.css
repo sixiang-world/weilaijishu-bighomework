@@ -633,6 +633,219 @@ body {
     transform: scale(1.25) rotate(45deg);
 }
 
+/* -------------------- 流式输出标记 -------------------- */
+.msg-content.streaming::after {
+    content: '▍';
+    display: inline-block;
+    animation: cursorBlink 0.7s step-end infinite;
+    color: var(--red);
+    font-weight: 900;
+    margin-left: 2px;
+}
+
+@keyframes cursorBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+/* -------------------- 侧边栏切换按钮 -------------------- */
+.btn-toggle-sidebar {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    background: transparent;
+    border: 2px solid rgba(245,240,230,0.25);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    margin-right: 8px;
+    transition: all 0.3s ease;
+}
+.btn-toggle-sidebar:hover {
+    border-color: var(--red);
+    background: rgba(214,40,40,0.12);
+}
+.hamburger {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 18px;
+}
+.hamburger-line {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background: var(--cream);
+    transition: all 0.3s ease;
+}
+.btn-toggle-sidebar:hover .hamburger-line:nth-child(1) {
+    transform: translateY(-1px);
+}
+.btn-toggle-sidebar:hover .hamburger-line:nth-child(3) {
+    transform: translateY(1px);
+}
+
+/* -------------------- 侧边栏 -------------------- */
+.sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 90;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+.sidebar-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    background: var(--black);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(-100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    clip-path: polygon(0 0, 94% 0, 100% 4%, 100% 100%, 0 100%);
+}
+.sidebar.open {
+    transform: translateX(0);
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 20px 12px;
+    border-bottom: 3px solid var(--red);
+}
+.sidebar-title {
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--cream);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+.sidebar-close {
+    width: 32px;
+    height: 32px;
+    background: var(--red);
+    border: none;
+    color: var(--cream);
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: all 0.25s ease;
+}
+.sidebar-close:hover {
+    background: var(--indigo);
+    transform: rotate(90deg);
+}
+
+.session-list {
+    flex: 1;
+    list-style: none;
+    padding: 8px 0;
+    overflow-y: auto;
+}
+.session-list::-webkit-scrollbar { width: 6px; }
+.session-list::-webkit-scrollbar-track { background: transparent; }
+.session-list::-webkit-scrollbar-thumb {
+    background: rgba(245,240,230,0.12);
+    border-radius: 3px;
+}
+
+.session-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px 10px 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    gap: 8px;
+    border-left: 3px solid transparent;
+}
+.session-item:hover {
+    background: rgba(214,40,40,0.08);
+    border-left-color: rgba(214,40,40,0.4);
+}
+.session-item.active {
+    background: rgba(214,40,40,0.14);
+    border-left-color: var(--red);
+}
+.session-item.active .session-title {
+    color: var(--cream);
+}
+
+.session-title {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(245,240,230,0.5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.2s ease;
+    letter-spacing: 0.03em;
+    font-family: 'Helvetica Neue', 'Helvetica', Arial, sans-serif;
+}
+.session-item:hover .session-title {
+    color: rgba(245,240,230,0.75);
+}
+
+.session-delete {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    color: rgba(245,240,230,0.2);
+    font-size: 12px;
+    cursor: pointer;
+    display: none;
+    place-items: center;
+    transition: all 0.2s ease;
+    border-radius: 0;
+}
+.session-item:hover .session-delete {
+    display: grid;
+}
+.session-delete:hover {
+    color: var(--red);
+    background: rgba(214,40,40,0.15);
+}
+
+.sidebar-footer {
+    padding: 12px 16px 20px;
+    border-top: 1px solid rgba(245,240,230,0.08);
+}
+.sidebar-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--red);
+    border: none;
+    color: var(--cream);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    clip-path: polygon(4% 0, 100% 0, 96% 100%, 0 100%);
+}
+.sidebar-btn:hover {
+    background: var(--indigo-dim);
+    transform: skewX(-3deg);
+}
+
 /* -------------------- 响应式 -------------------- */
 @media (max-width: 520px) {
     body {

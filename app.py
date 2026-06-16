@@ -3,7 +3,9 @@
 基于 Flask + Moonshot/Kimi API
 """
 
-from flask import Flask, request, jsonify, render_template
+import json
+
+from flask import Flask, request, jsonify, render_template, Response, stream_with_context
 from flask_cors import CORS
 
 from config import Config
@@ -48,6 +50,73 @@ def create_app() -> Flask:
             "reply": reply,
             "session_id": session_id,
         })
+
+    @app.route("/api/chat/stream", methods=["POST"])
+    def api_chat_stream():
+        """流式聊天接口（SSE）
+
+        请求体：{"content": "用户消息", "session_id": "会话 ID"}
+        返回体：text/event-stream，每行一个 data: {"token": "..."}
+        """
+        data = request.get_json(silent=True) or {}
+        content = (data.get("content") or "").strip()
+        session_id = (data.get("session_id") or "").strip()
+
+        if not content:
+            return jsonify({"reply": "滴～信号为空……请再说一次？", "session_id": session_id})
+
+        def generate():
+            for token in chat_service.chat_stream(session_id, content):
+                yield f"data: {json.dumps({'token': token})}\n\n"
+            yield "data: [DONE]\n\n"
+
+        return Response(
+            stream_with_context(generate()),
+            mimetype="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+            },
+        )
+
+    @app.route("/api/sessions", methods=["GET"])
+    def api_list_sessions():
+        """列出所有会话"""
+        sessions = chat_service.list_sessions()
+        # 将 datetime 转为字符串
+        for s in sessions:
+            for key in ("created_at", "updated_at"):
+                if key in s and s[key] is not None:
+                    s[key] = str(s[key])
+        return jsonify(sessions)
+
+    @app.route("/api/sessions/delete", methods=["POST"])
+    def api_delete_session():
+        """删除一个会话"""
+        data = request.get_json(silent=True) or {}
+        session_id = (data.get("session_id") or "").strip()
+        if session_id:
+            chat_service.delete_session(session_id)
+        return jsonify({"ok": True})
+
+    @app.route("/api/sessions/rename", methods=["POST"])
+    def api_rename_session():
+        """重命名一个会话"""
+        data = request.get_json(silent=True) or {}
+        session_id = (data.get("session_id") or "").strip()
+        title = (data.get("title") or "").strip()
+        if session_id and title:
+            chat_service.rename_session(session_id, title)
+        return jsonify({"ok": True})
+
+    @app.route("/api/sessions/<session_id>/messages", methods=["GET"])
+    def api_session_messages(session_id):
+        """获取指定会话的消息列表"""
+        from services.database import get_messages
+        msgs = get_messages(session_id)
+        # 过滤掉 system 消息返回给前端
+        user_messages = [m for m in msgs if m["role"] != "system"]
+        return jsonify({"messages": user_messages})
 
     @app.route("/api/clear", methods=["POST"])
     def api_clear():
