@@ -219,6 +219,8 @@ function getRobotSVG(state) {
         <rect x="16" y="38" width="10" height="16" rx="3" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
         <rect x="86" y="38" width="10" height="16" rx="3" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
 
+        <!-- 五官组（整体跟随鼠标偏移） -->
+        <g id="face-group">
         <!-- 眼睛 -->
         ${eyes}
 
@@ -228,6 +230,7 @@ function getRobotSVG(state) {
         <!-- 脸颊装饰 -->
         <rect x="34" y="62" width="8" height="4" rx="2" fill="${bodyColor}" opacity="0.25"/>
         <rect x="72" y="62" width="8" height="4" rx="2" fill="${bodyColor}" opacity="0.25"/>
+        </g>
 
         <!-- 身体 -->
         <rect x="32" y="82" width="48" height="30" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="3"/>
@@ -295,59 +298,88 @@ petRobot.addEventListener('click', function () {
     }
 });
 
-// 眼睛追踪鼠标 — atan2 方案
-let lastPupilOffset = { x: 0, y: 0 };
+// 五官整体跟随鼠标 — face-group parallax
+let lastFaceOffset = { x: 0, y: 0 };
+let faceAnimFrame = null;
 
-function updatePetEyes(e) {
-    const pl = document.getElementById('pupil-l');
-    const pr = document.getElementById('pupil-r');
-    if (!pl || !pr) return;
-
-    // 获取 SVG 在屏幕上的位置
+function updateFaceFollow(e) {
     const svg = petRobot.querySelector('svg');
     if (!svg) return;
+
+    const faceGroup = document.getElementById('face-group');
+    if (!faceGroup) return;
+
     const svgRect = svg.getBoundingClientRect();
     const viewBox = svg.viewBox.baseVal;
     const scaleX = viewBox.width / svgRect.width;
     const scaleY = viewBox.height / svgRect.height;
 
-    // 左眼中心 (49, 57)，右眼中心 (71, 57) — 对应 SVG viewBox 坐标
-    const eyes = [
-        { el: pl, cx: 49, cy: 57, R: 5 },   // 眼球半径 5 (10x10 rect 的一半)
-        { el: pr, cx: 71, cy: 57, R: 5 }
-    ];
+    // 机器人头部中心 (viewBox 坐标)
+    const headCX = 56;
+    const headCY = 46;
 
-    // 鼠标位置转换到 SVG viewBox 坐标
+    // 鼠标位置转 SVG 坐标
     const mx = (e.clientX - svgRect.left) * scaleX;
     const my = (e.clientY - svgRect.top) * scaleY;
 
-    for (const eye of eyes) {
-        const dx = mx - eye.cx;
-        const dy = my - eye.cy;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+    // 方向向量
+    const dx = mx - headCX;
+    const dy = my - headCY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
 
-        if (dist < 2) {
-            // 鼠标在眼球中心附近，瞳孔归中
-            eye.el.setAttribute('x', eye.cx - 2.5);
-            eye.el.setAttribute('y', eye.cy - 2.5);
-            continue;
-        }
+    // 最大偏移量（五官在脸内可移动的范围）
+    const maxOffset = 6;
 
-        // 瞳孔沿角度方向移动，最大偏移 R - 瞳孔半径
-        const maxDist = eye.R - 2.5;  // 瞳孔 5x5，半径 2.5
+    let tx, ty;
+    if (dist < 5) {
+        tx = 0;
+        ty = 0;
+    } else {
         const angle = Math.atan2(dy, dx);
-        const offset = Math.min(maxDist, dist * 0.05);  // 平滑跟随
-        const nx = eye.cx + Math.cos(angle) * offset - 2.5;
-        const ny = eye.cy + Math.sin(angle) * offset - 2.5;
-
-        eye.el.setAttribute('x', nx.toFixed(1));
-        eye.el.setAttribute('y', ny.toFixed(1));
+        const offset = Math.min(maxOffset, dist * 0.04);
+        tx = Math.cos(angle) * offset;
+        ty = Math.sin(angle) * offset;
     }
 
-    lastPupilOffset = { x: 0, y: 0 };  // 不再用 transform
+    // 平滑过渡（lerp）
+    lastFaceOffset.x += (tx - lastFaceOffset.x) * 0.15;
+    lastFaceOffset.y += (ty - lastFaceOffset.y) * 0.15;
+
+    faceGroup.setAttribute('transform',
+        `translate(${lastFaceOffset.x.toFixed(2)}, ${lastFaceOffset.y.toFixed(2)})`
+    );
+
+    // 同时移动瞳孔（眼球内的微追踪）
+    const pl = document.getElementById('pupil-l');
+    const pr = document.getElementById('pupil-r');
+    if (pl && pr) {
+        const eyes = [
+            { el: pl, cx: 49, cy: 57, R: 5 },
+            { el: pr, cx: 71, cy: 57, R: 5 }
+        ];
+        for (const eye of eyes) {
+            const edx = mx - eye.cx;
+            const edy = my - eye.cy;
+            const eDist = Math.sqrt(edx * edx + edy * edy);
+            if (eDist < 2) {
+                eye.el.setAttribute('x', eye.cx - 2.5);
+                eye.el.setAttribute('y', eye.cy - 2.5);
+            } else {
+                const maxDist = eye.R - 2.5;
+                const eAngle = Math.atan2(edy, edx);
+                const eOffset = Math.min(maxDist, eDist * 0.04);
+                eye.el.setAttribute('x', (eye.cx + Math.cos(eAngle) * eOffset - 2.5).toFixed(1));
+                eye.el.setAttribute('y', (eye.cy + Math.sin(eAngle) * eOffset - 2.5).toFixed(1));
+            }
+        }
+    }
 }
 
-document.addEventListener('mousemove', updatePetEyes);
+// 用 requestAnimationFrame 做平滑循环
+document.addEventListener('mousemove', function(e) {
+    if (faceAnimFrame) cancelAnimationFrame(faceAnimFrame);
+    faceAnimFrame = requestAnimationFrame(() => updateFaceFollow(e));
+});
 
 // 初始化桌宠
 setPetState('idle');
