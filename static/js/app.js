@@ -146,80 +146,61 @@ function getRobotSVG(state, pupilOffset) {
     const px = (pupilOffset && pupilOffset.x) || 0;
     const py = (pupilOffset && pupilOffset.y) || 0;
 
-    let eyes, mouth, arms, extras;
+    let eyes, mouth, extras;
 
     switch (state) {
         case 'thinking':
-            // 思考：一只眼微闭，手托下巴
+            // 思考：一只眼微闭，嘴微张
             eyes = `
-                <rect x="44" y="52" width="10" height="10" fill="${k}"/>
-                <rect x="46" y="54" width="5" height="5" fill="${faceColor}" id="pupil-l" transform="translate(${px},${py})"/>
-                <rect x="66" y="52" width="10" height="8" fill="${k}"/>
-                <rect x="66" y="56" width="10" height="4" fill="${faceColor}"/>
-                <rect x="68" y="53" width="5" height="4" fill="${faceColor}" id="pupil-r" transform="translate(${px},${py})"/>
+                <circle cx="46" cy="52" r="6" fill="${k}"/>
+                <circle cx="47" cy="51" r="2.5" fill="${faceColor}" id="pupil-l" transform="translate(${px},${py})"/>
+                <circle cx="74" cy="52" r="5" fill="${k}"/>
+                <line x1="69" y1="50" x2="79" y2="50" stroke="${faceColor}" stroke-width="2"/>
+                <circle cx="75" cy="51" r="2" fill="${faceColor}" id="pupil-r" transform="translate(${px},${py})"/>
             `;
-            mouth = `<rect x="50" y="72" width="14" height="4" fill="${k}" transform="rotate(-5 57 74)"/>`;
-            arms = `
-                <rect x="18" y="70" width="8" height="28" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
-                <rect x="10" y="68" width="12" height="8" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
-                <rect x="86" y="56" width="8" height="24" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
-                <rect x="82" y="48" width="12" height="12" rx="6" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
-            `;
+            mouth = `<ellipse cx="60" cy="70" rx="6" ry="4" fill="${k}"/>`;
             extras = `
-                <rect x="96" y="42" width="6" height="6" fill="${accent}" opacity="0.4"/>
-                <rect x="100" y="36" width="4" height="4" fill="${accent}" opacity="0.3"/>
-                <rect x="104" y="30" width="3" height="3" fill="${accent}" opacity="0.2"/>
+                <circle cx="96" cy="38" r="5" fill="${accent}" opacity="0.4"/>
+                <circle cx="104" cy="30" r="3.5" fill="${accent}" opacity="0.3"/>
+                <circle cx="108" cy="22" r="2" fill="${accent}" opacity="0.2"/>
             `;
             break;
         case 'replying':
-            // 回复：开心嘴，双手张开
+            // 回复：开心大眼，微笑
             eyes = `
-                <rect x="44" y="52" width="10" height="10" fill="${k}"/>
-                <rect x="46" y="54" width="5" height="5" fill="${faceColor}" id="pupil-l" transform="translate(${px},${py})"/>
-                <rect x="66" y="52" width="10" height="10" fill="${k}"/>
-                <rect x="68" y="54" width="5" height="5" fill="${faceColor}" id="pupil-r" transform="translate(${px},${py})"/>
+                <circle cx="46" cy="50" r="7" fill="${k}"/>
+                <circle cx="47" cy="49" r="3" fill="${faceColor}" id="pupil-l" transform="translate(${px},${py})"/>
+                <circle cx="74" cy="50" r="7" fill="${k}"/>
+                <circle cx="75" cy="49" r="3" fill="${faceColor}" id="pupil-r" transform="translate(${px},${py})"/>
             `;
-            mouth = `
-                <rect x="46" y="72" width="22" height="6" fill="${k}"/>
-                <rect x="48" y="72" width="18" height="2" fill="${faceColor}"/>
-            `;
-            arms = `
-                <rect x="14" y="62" width="8" height="28" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
-                <rect x="6" y="58" width="12" height="8" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
-                <rect x="90" y="62" width="8" height="28" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
-                <rect x="94" y="58" width="12" height="8" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
-            `;
+            mouth = `<path d="M 48 68 Q 60 80 72 68" stroke="${k}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
             extras = '';
             break;
         case 'idle':
         default:
-            // 空闲：正常眼，微笑，手臂自然下垂
+            // 空闲：圆眼，小嘴
             eyes = `
-                <rect x="44" y="52" width="10" height="10" fill="${k}"/>
-                <rect x="46" y="54" width="5" height="5" fill="${faceColor}" id="pupil-l" transform="translate(${px},${py})"/>
-                <rect x="66" y="52" width="10" height="10" fill="${k}"/>
-                <rect x="68" y="54" width="5" height="5" fill="${faceColor}" id="pupil-r" transform="translate(${px},${py})"/>
+                <circle cx="46" cy="52" r="6" fill="${k}"/>
+                <circle cx="47" cy="51" r="2.5" fill="${faceColor}" id="pupil-l" transform="translate(${px},${py})"/>
+                <circle cx="74" cy="52" r="6" fill="${k}"/>
+                <circle cx="75" cy="51" r="2.5" fill="${faceColor}" id="pupil-r" transform="translate(${px},${py})"/>
             `;
-            mouth = `<rect x="48" y="72" width="18" height="4" fill="${k}"/>`;
-            arms = `
-                <rect x="20" y="64" width="8" height="30" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
-                <rect x="84" y="64" width="8" height="30" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
-            `;
+            mouth = `<rect x="52" y="68" width="16" height="3" rx="1.5" fill="${k}"/>`;
             extras = '';
             break;
     }
 
-    return `<svg viewBox="0 0 112 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+    return \`<svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
         <!-- 天线 -->
-        <line x1="56" y1="8" x2="56" y2="22" stroke="${k}" stroke-width="3" stroke-linecap="square"/>
-        <circle cx="56" cy="6" r="5" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
+        <line x1="60" y1="6" x2="60" y2="18" stroke="${k}" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="60" cy="4" r="4" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
 
-        <!-- 头部 — 圆脸 -->
-        <circle cx="56" cy="46" r="32" fill="${faceColor}" stroke="${k}" stroke-width="3"/>
+        <!-- 头部 — NOMI 圆球 -->
+        <circle cx="60" cy="54" r="38" fill="${faceColor}" stroke="${k}" stroke-width="3"/>
 
-        <!-- 耳朵 -->
-        <rect x="16" y="38" width="10" height="16" rx="3" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
-        <rect x="86" y="38" width="10" height="16" rx="3" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
+        <!-- 耳朵/底座小突起 -->
+        <ellipse cx="18" cy="58" rx="8" ry="12" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
+        <ellipse cx="102" cy="58" rx="8" ry="12" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
 
         <!-- 眼睛 -->
         ${eyes}
@@ -227,21 +208,17 @@ function getRobotSVG(state, pupilOffset) {
         <!-- 嘴 -->
         ${mouth}
 
-        <!-- 脸颊装饰 -->
-        <rect x="34" y="62" width="8" height="4" rx="2" fill="${bodyColor}" opacity="0.25"/>
-        <rect x="72" y="62" width="8" height="4" rx="2" fill="${bodyColor}" opacity="0.25"/>
+        <!-- 脸颊红晕 -->
+        <circle cx="34" cy="64" r="6" fill="${bodyColor}" opacity="0.18"/>
+        <circle cx="86" cy="64" r="6" fill="${bodyColor}" opacity="0.18"/>
 
-        <!-- 身体 -->
-        <rect x="32" y="82" width="48" height="30" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="3"/>
-        <rect x="44" y="88" width="24" height="4" fill="${faceColor}" opacity="0.3"/>
-        <rect x="44" y="96" width="24" height="4" fill="${faceColor}" opacity="0.2"/>
-
-        <!-- 手臂 -->
-        ${arms}
+        <!-- 底座 -->
+        <ellipse cx="60" cy="100" rx="28" ry="8" fill="${bodyColor}" stroke="${k}" stroke-width="2.5"/>
+        <rect x="32" y="90" width="56" height="12" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="2.5"/>
 
         <!-- 额外装饰 -->
         ${extras}
-    </svg>`;
+    </svg>\`;
 }
 
 // 桌宠状态管理
