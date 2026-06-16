@@ -632,6 +632,9 @@ async function sendMessage() {
     const content = messageInput.value.trim();
     if (!content) return;
 
+    // 立即锁定，防止快速连按 Enter 并发请求
+    isLoading = true;
+
     const welcomeEl = document.getElementById('welcomeMessage');
     if (welcomeEl) welcomeEl.remove();
 
@@ -760,8 +763,9 @@ async function sendMessage() {
             showError('连接中断，请检查网络 …');
         }
         hideStopButton();
+    } finally {
+        isLoading = false;
     }
-    isLoading = false;
 }
 
 function stopGeneration() {
