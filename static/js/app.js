@@ -718,11 +718,12 @@ async function sendMessage() {
         msgDiv.innerHTML = `
             <div class="msg-avatar">${ROBOT_SVG}</div>
             <div class="msg-body">
-                <div class="msg-content streaming" id="streamingMsg"></div>
-                <div class="msg-actions">
-                    <button class="msg-action-btn" onclick="copyMessage(this)">复制</button>
-                    <button class="msg-action-btn" onclick="regenerate(this)">重新生成</button>
-                    <span class="msg-time">${timeStr}</span>
+                <div class="msg-content streaming" id="streamingMsg">
+                    <div class="msg-actions">
+                        <button class="msg-action-btn" onclick="copyMessage(this)">复制</button>
+                        <button class="msg-action-btn" onclick="regenerate(this)">重新生成</button>
+                        <span class="msg-time">${timeStr}</span>
+                    </div>
                 </div>
             </div>
         `;
@@ -821,11 +822,13 @@ function addMessage(text, type) {
     div.innerHTML = `
         <div class="msg-avatar">${svg}</div>
         <div class="msg-body">
-            <div class="msg-content">${rendered}</div>
-            <div class="msg-actions">
-                <button class="msg-action-btn" onclick="copyMessage(this)">复制</button>
-                ${type === 'robot' ? '<button class="msg-action-btn" onclick="regenerate(this)">重新生成</button>' : ''}
-                <span class="msg-time">${timeStr}</span>
+            <div class="msg-content">
+                ${rendered}
+                <div class="msg-actions">
+                    <button class="msg-action-btn" onclick="copyMessage(this)">复制</button>
+                    ${type === 'robot' ? '<button class="msg-action-btn" onclick="regenerate(this)">重新生成</button>' : ''}
+                    <span class="msg-time">${timeStr}</span>
+                </div>
             </div>
         </div>
     `;

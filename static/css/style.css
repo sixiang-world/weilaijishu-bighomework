@@ -815,26 +815,29 @@ body.sidebar-is-collapsed .main-layout {
 .msg-actions {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-top: 6px;
-    padding: 0 4px;
+    gap: 8px;
+    padding: 8px 0 0;
+    margin-top: 8px;
+    border-top: 1px solid rgba(26,26,26,0.06);
+    opacity: 0;
+    transition: opacity 0.25s ease;
 }
-.message.robot .msg-actions {
-    margin-left: 56px; /* avatar 40 + gap 12 + border 4 */
+.msg-content:hover .msg-actions {
+    opacity: 1;
 }
 .message.user .msg-actions {
+    border-top-color: rgba(99,102,241,0.1);
     justify-content: flex-end;
-    margin-right: 56px;
 }
 .msg-action-btn {
     background: none;
     border: none;
     font-family: 'Helvetica Neue', 'Helvetica', Arial, sans-serif;
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 10px;
+    font-weight: 700;
     color: var(--gray-light);
     cursor: pointer;
-    padding: 2px 6px;
+    padding: 1px 4px;
     letter-spacing: 0.04em;
     transition: all 0.2s ease;
     text-transform: uppercase;
@@ -847,9 +850,10 @@ body.sidebar-is-collapsed .main-layout {
 }
 .msg-time {
     font-size: 10px;
-    color: rgba(107,107,107,0.5);
+    color: rgba(107,107,107,0.4);
     font-weight: 400;
     letter-spacing: 0.05em;
+    margin-left: auto;
 }
 
 /* -------------------- Markdown 渲染 -------------------- */
