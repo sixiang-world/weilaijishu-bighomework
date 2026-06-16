@@ -15,7 +15,7 @@ env/
 *.swo
 
 # Runtime data
-data/*.db
+data/
 
 # OS
 .DS_Store

@@ -1398,9 +1398,21 @@ a, button, .btn, .btn-send, .btn-clear, .btn-toggle-sidebar,
         width: 260px;
         transform: translateX(-100%);
     }
-    .sidebar.mobile-open {
-        transform: translateX(0);
-    }
+.sidebar.mobile-open {
+    transform: translateX(0);
+}
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 99;
+    transition: opacity 0.3s ease;
+}
+.sidebar-overlay.visible {
+    display: block;
+}
+
     .main-layout {
         margin-left: 0 !important;
     }

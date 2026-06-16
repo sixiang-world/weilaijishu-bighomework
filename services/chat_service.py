@@ -71,34 +71,19 @@ class ChatService:
         """确保会话在数据库中存在,返回完整对话历史"""
         if not db.session_exists(session_id):
             db.create_session(session_id)
-            # 添加系统提示词作为第一条消息
             db.add_message(session_id, "system", SYSTEM_PROMPT)
-
-        return db.get_messages(session_id)
+        return db.get_truncated_messages(session_id)
 
     def _auto_rename(self, session_id: str, first_user_content: str) -> None:
         """如果会话还是默认标题,自动用第一条用户消息重命名"""
         if db.get_session_title(session_id) in ("新对话", ""):
-            # 取用户消息前 20 个字符作为标题,去掉首尾空白
             new_title = first_user_content.strip()[:20]
             if new_title:
                 db.rename_session(session_id, new_title)
 
     def chat(self, session_id: str, content: str) -> str:
-        """
-        处理一条用户消息,返回 AI 回复
-
-        Args:
-            session_id: 会话标识符
-            content: 用户消息内容
-
-        Returns:
-            AI 回复文本
-        """
+        """处理一条用户消息,返回 AI 回复（非流式）"""
         history = self._ensure_session(session_id)
-
-        # 添加用户消息到数据库
-        db.add_message(session_id, "user", content)
 
         # 构造 API 调用历史
         messages = [{"role": m["role"], "content": m["content"]} for m in history]
@@ -114,29 +99,16 @@ class ChatService:
         except Exception as e:
             reply = f"滴~信号中断了......数据碎片:{str(e)}"
 
-        # 保存 AI 回复到数据库
+        # API 成功后才保存用户消息和 AI 回复
+        db.add_message(session_id, "user", content)
         db.add_message(session_id, "assistant", reply)
-
-        # 自动重命名(用第一条用户消息)
         self._auto_rename(session_id, content)
 
         return reply
 
     def chat_stream(self, session_id: str, content: str):
-        """
-        流式处理一条用户消息,逐个 yield token
-
-        Args:
-            session_id: 会话标识符
-            content: 用户消息内容
-
-        Yields:
-            流式返回的文本片段
-        """
+        """流式处理一条用户消息,逐个 yield token"""
         history = self._ensure_session(session_id)
-
-        # 添加用户消息到数据库
-        db.add_message(session_id, "user", content)
 
         # 构造 API 调用历史
         messages = [{"role": m["role"], "content": m["content"]} for m in history]
@@ -157,17 +129,57 @@ class ChatService:
                 if token:
                     full_reply += token
                     yield token
+        except GeneratorExit:
+            # 客户端断连：不保存截断的回复，只保存用户消息
+            db.add_message(session_id, "user", content)
+            return
         except Exception as e:
             error_msg = f"滴~信号中断了......数据碎片:{str(e)}"
             full_reply = error_msg
             yield error_msg
 
-        # 保存完整 AI 回复到数据库
+        # 正常完成：保存用户消息和完整回复
+        db.add_message(session_id, "user", content)
         db.add_message(session_id, "assistant", full_reply)
-
-        # 自动重命名(用第一条用户消息)
         self._auto_rename(session_id, content)
 
+    def regenerate_stream(self, session_id: str, content: str):
+        """重新生成：删除最后一条 assistant 回复，用相同 user 消息重新生成"""
+        history = self._ensure_session(session_id)
+
+        # 删除最后一条 assistant 回复
+        db.delete_last_message(session_id, "assistant")
+
+        # 构造 API 调用历史（不含新的 user 消息，因为 user 消息已存在于 DB）
+        messages = [{"role": m["role"], "content": m["content"]} for m in history]
+        # 确保最后一条是 user 消息
+        if messages and messages[-1]["role"] != "user":
+            messages.append({"role": "user", "content": content})
+
+        full_reply = ""
+        try:
+            stream = self.client.chat.completions.create(
+                model=Config.MODEL_NAME,
+                messages=messages,
+                stream=True,
+            )
+            for chunk in stream:
+                if not chunk.choices:
+                    continue
+                delta = chunk.choices[0].delta
+                token = delta.content if delta else None
+                if token:
+                    full_reply += token
+                    yield token
+        except GeneratorExit:
+            return
+        except Exception as e:
+            error_msg = f"滴~信号中断了......数据碎片:{str(e)}"
+            full_reply = error_msg
+            yield error_msg
+
+        # 保存新的 assistant 回复
+        db.add_message(session_id, "assistant", full_reply)
 
     def repair_html(self, broken_html: str) -> str:
         """用 AI 修复 HTML 结构问题"""
@@ -199,7 +211,6 @@ class ChatService:
                 temperature=0.1,
             )
             fixed = response.choices[0].message.content.strip()
-            # 提取 HTML 部分（可能被 markdown 代码块包裹）
             if "```html" in fixed:
                 fixed = fixed.split("```html")[1].split("```")[0].strip()
             elif "```" in fixed:

@@ -7,6 +7,12 @@
 // 会话管理
 // ================================================================
 let currentSessionId = 'dream_' + Math.random().toString(36).substring(2, 11);
+
+// 从 URL 读取 session_id（如 /chat/xxx）
+(function() {
+    const match = window.location.pathname.match(/^\/chat\/([a-zA-Z0-9_-]+)/);
+    if (match) currentSessionId = match[1];
+})();
 let sessions = [];
 let isLoading = false;
 
@@ -19,6 +25,7 @@ const sessionList = document.getElementById('sessionList');
 const btnNewChat = document.getElementById('btnNewChat');
 const btnToggleSidebar = document.getElementById('btnToggleSidebar');
 const btnStop = document.getElementById('btnStop');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
 
 // ================================================================
 // Markdown 渲染配置
@@ -432,6 +439,7 @@ function toggleSidebar() {
 function closeSidebar() {
     if (window.innerWidth <= 520) {
         sidebar.classList.remove('mobile-open');
+        sidebarOverlay.classList.remove('visible');
     }
 }
 
@@ -439,6 +447,7 @@ function closeSidebar() {
 function toggleSidebarMobile() {
     if (window.innerWidth <= 520) {
         sidebar.classList.toggle('mobile-open');
+        sidebarOverlay.classList.toggle('visible', sidebar.classList.contains('mobile-open'));
     } else {
         toggleSidebar();
     }
@@ -512,6 +521,7 @@ function renderSessionList() {
 async function switchSession(sessionId) {
     if (sessionId === currentSessionId) return;
     currentSessionId = sessionId;
+    history.pushState({ sessionId: sessionId }, '', '/chat/' + sessionId);
     closeSidebar();
     await loadChatHistory();
     renderSessionList();
@@ -519,25 +529,15 @@ async function switchSession(sessionId) {
 
 async function newSession() {
     currentSessionId = 'dream_' + Math.random().toString(36).substring(2, 11);
+    history.pushState({ sessionId: currentSessionId }, '', '/chat/' + currentSessionId);
     closeSidebar();
     showWelcome();
     messageInput.focus();
-    await // 发布按钮事件委托
-document.addEventListener('click', function(e) {
-    const btn = e.target.closest('[data-publish]');
-    if (btn) {
-        const type = btn.dataset.publish;
-        const msgContent = btn.closest('.msg-content');
-        if (msgContent) {
-            publishMessage(btn, type);
-        }
-    }
-});
-
-loadSessions();
+    await loadSessions();
 }
 
 async function deleteSession(sessionId) {
+    if (!confirm('确定要删除这个会话吗？此操作不可撤销。')) return;
     try {
         await fetch('/api/sessions/delete', {
             method: 'POST',
@@ -592,6 +592,7 @@ async function loadChatHistory() {
             showWelcome();
         }
         scrollToBottom();
+        updateRegenerateButtons();
     } catch (_) {
         showWelcome();
     }
@@ -738,6 +739,7 @@ async function sendMessage() {
 
         hideStopButton();
         await loadSessions();
+        updateRegenerateButtons();
 
     } catch (err) {
         if (err.name === 'AbortError') {
@@ -759,6 +761,7 @@ async function sendMessage() {
         }
         hideStopButton();
     }
+    isLoading = false;
 }
 
 function stopGeneration() {
@@ -807,6 +810,7 @@ function addMessage(text, type) {
     }
 
     chatContainer.appendChild(div);
+    updateRegenerateButtons();
     scrollToBottom();
 }
 
@@ -867,7 +871,9 @@ function regenerate(btn) {
     let lastUserText = '';
     for (const msg of allMessages) {
         if (msg.classList.contains('user')) {
-            lastUserText = msg.querySelector('.msg-content').textContent;
+            const contentClone = msg.querySelector('.msg-content').cloneNode(true);
+            contentClone.querySelectorAll('.msg-actions, .publish-card').forEach(function(el) { el.remove(); });
+            lastUserText = contentClone.textContent.trim();
         }
         if (msg === msgDiv) break;
     }
@@ -877,11 +883,123 @@ function regenerate(btn) {
         next = next.nextElementSibling;
         toRemove.remove();
     }
+    updateRegenerateButtons();
     if (lastUserText) {
-        messageInput.value = lastUserText;
-        sendMessage();
+        streamRegenerate(lastUserText);
     }
 }
+
+async function streamRegenerate(userText) {
+    if (isLoading) return;
+    isLoading = true;
+
+    setPetState('thinking');
+    showPetEmoji('thinking');
+    showLoading();
+
+    abortController = new AbortController();
+    btnStop.style.display = 'inline-block';
+    btnSend.style.display = 'none';
+
+    try {
+        const res = await fetch('/api/chat/regenerate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: userText, session_id: currentSessionId }),
+            signal: abortController.signal,
+        });
+
+        if (!res.ok) {
+            removeLoading();
+            setPetState('idle');
+            hideStopButton();
+            showError('连接中断，请检查网络 …');
+            isLoading = false;
+            return;
+        }
+
+        removeLoading();
+        setPetState('replying');
+
+        const now = new Date();
+        const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'message robot';
+        msgDiv.innerHTML = `
+            <div class="msg-avatar">${ROBOT_SVG}</div>
+            <div class="msg-body">
+                <div class="msg-content streaming" id="streamingMsg"></div>
+                <div class="msg-actions">
+                    <button class="msg-action-btn" onclick="copyMessage(this)">复制</button>
+                    <button class="msg-action-btn" onclick="regenerate(this)">重新生成</button>
+                    <div class="msg-action-dropdown"><button class="msg-action-btn">发布 ▾</button><div class="msg-action-menu"><button data-publish="doc">文档</button><button data-publish="ppt">幻灯片</button><button data-publish="page">网页</button></div></div>
+                    <span class="msg-time">${timeStr}</span>
+                </div>
+            </div>
+        `;
+        chatContainer.appendChild(msgDiv);
+        const contentDiv = msgDiv.querySelector('.msg-content');
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let fullReply = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                const payload = line.slice(6).trim();
+                if (payload === '[DONE]') break;
+                try {
+                    const parsed = JSON.parse(payload);
+                    if (parsed.token) {
+                        fullReply += parsed.token;
+                        contentDiv.innerHTML = renderMarkdown(fullReply);
+                        scrollToBottom();
+                    }
+                } catch (_) {}
+            }
+        }
+
+        contentDiv.classList.remove('streaming');
+        contentDiv.innerHTML = renderMarkdown(fullReply);
+        addCodeCopyButtons(msgDiv);
+        detectAndPublish(contentDiv);
+
+        const emojiKeys = ['happy', 'surprise', 'excited', 'cool'];
+        showPetEmoji(emojiKeys[Math.floor(Math.random() * emojiKeys.length)]);
+        setTimeout(() => setPetState('idle'), 800);
+        hideStopButton();
+        isLoading = false;
+        await loadSessions();
+        updateRegenerateButtons();
+    } catch (err) {
+        if (err.name === 'AbortError') {
+            const streaming = document.getElementById('streamingMsg');
+            if (streaming) {
+                streaming.classList.remove('streaming');
+                addCodeCopyButtons(streaming.closest('.message'));
+            }
+            removeLoading();
+            showPetEmoji('confused');
+            setTimeout(() => setPetState('idle'), 800);
+        } else {
+            removeLoading();
+            setPetState('idle');
+            const streaming = document.getElementById('streamingMsg');
+            if (streaming) streaming.closest('.message').remove();
+            showError('连接中断，请检查网络 …');
+        }
+        hideStopButton();
+        isLoading = false;
+    }
+}
+
 
 // ================================================================
 // 发布系统 — doc/ppt/page
@@ -1122,6 +1240,7 @@ function showError(text) {
 // ================================================================
 async function clearChat() {
     if (isLoading) return;
+    if (!confirm('确定要清空当前对话历史吗？')) return;
 
     try {
         await fetch('/api/clear', {
@@ -1162,6 +1281,20 @@ function scrollToBottom() {
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
+// 只在最后一条机器人消息上显示「重新生成」按钮
+function updateRegenerateButtons() {
+    const allMsgs = chatContainer.querySelectorAll('.message.robot');
+    allMsgs.forEach(function(msg) {
+        const btn = msg.querySelector('.msg-action-btn[onclick*="regenerate"]');
+        if (btn) btn.style.display = 'none';
+    });
+    const last = allMsgs[allMsgs.length - 1];
+    if (last) {
+        const btn = last.querySelector('.msg-action-btn[onclick*="regenerate"]');
+        if (btn) btn.style.display = '';
+    }
+}
+
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
@@ -1180,8 +1313,36 @@ messageInput.addEventListener('keydown', function (e) {
 
 btnNewChat.addEventListener('click', newSession);
 
+// 发布按钮事件委托（全局一次绑定）
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('[data-publish]');
+    if (btn) {
+        const type = btn.dataset.publish;
+        const msgContent = btn.closest('.msg-content');
+        if (msgContent) {
+            publishMessage(btn, type);
+        }
+    }
+});
+
+// 移动端遮罩点击关闭侧边栏
+sidebarOverlay.addEventListener('click', function() {
+    closeSidebar();
+});
+
 // ================================================================
 // 启动
 // ================================================================
+
+// 浏览器前进/后退时同步会话
+window.addEventListener('popstate', function(e) {
+    const match = window.location.pathname.match(/^\/chat\/([a-zA-Z0-9_-]+)/);
+    if (match && match[1] !== currentSessionId) {
+        currentSessionId = match[1];
+        loadChatHistory();
+        renderSessionList();
+    }
+});
+
 loadSessions();
 messageInput.focus();
