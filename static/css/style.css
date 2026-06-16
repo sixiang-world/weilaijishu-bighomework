@@ -248,28 +248,7 @@ body {
     transform: skewX(-3deg);
 }
 
-/* 折叠态下的展开提示条 */
-.sidebar-collapse-hint {
-    display: none;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    writing-mode: vertical-rl;
-    font-size: 10px;
-    font-weight: 700;
-    color: rgba(245,240,230,0.3);
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: color 0.3s ease;
-}
-.sidebar.collapsed .sidebar-collapse-hint {
-    display: block;
-}
-.sidebar-collapse-hint:hover {
-    color: var(--red);
-}
+
 
 /* ============================================================
    主区域 — 两栏布局
@@ -773,9 +752,7 @@ body.sidebar-is-collapsed .main-layout {
     white-space: nowrap;
     display: none;
 }
-.btn-stop.visible {
-    display: inline-block;
-}
+
 .btn-stop:hover {
     background: var(--red);
 }
@@ -897,6 +874,7 @@ body.sidebar-is-collapsed .main-layout {
     line-height: 1.6;
     color: #abb2bf;
     background: none;
+    border: none;
 }
 .msg-content code {
     font-family: 'Courier New', 'Consolas', monospace;
@@ -904,11 +882,6 @@ body.sidebar-is-collapsed .main-layout {
     background: rgba(26,26,26,0.06);
     padding: 1px 5px;
     border: 1px solid rgba(26,26,26,0.1);
-}
-.msg-content pre code {
-    background: none;
-    border: none;
-    padding: 14px 16px;
 }
 
 /* 代码块复制按钮 */
