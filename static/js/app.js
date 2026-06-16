@@ -208,16 +208,8 @@ function getRobotSVG(state) {
     }
 
     return `<svg viewBox="0 0 112 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- 天线 -->
-        <line x1="56" y1="8" x2="56" y2="22" stroke="${k}" stroke-width="3" stroke-linecap="square"/>
-        <circle cx="56" cy="6" r="5" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
-
         <!-- 头部 — 圆脸 -->
         <circle cx="56" cy="46" r="32" fill="${faceColor}" stroke="${k}" stroke-width="3"/>
-
-        <!-- 耳朵 -->
-        <rect x="16" y="38" width="10" height="16" rx="3" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
-        <rect x="86" y="38" width="10" height="16" rx="3" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
 
         <!-- 五官组（整体跟随鼠标偏移） -->
         <g id="face-group">
