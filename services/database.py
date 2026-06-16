@@ -177,6 +177,22 @@ def delete_last_message(session_id: str, role: str) -> bool:
         return False
 
 
+def assistant_after_last_user(session_id: str) -> bool:
+    """最后一条 assistant 是否位于最后一条 user 之后（即它是「待替换的回复」）。"""
+    with get_connection() as conn:
+        last_user = conn.execute(
+            "SELECT MAX(id) AS id FROM messages WHERE session_id = ? AND role = 'user'",
+            (session_id,),
+        ).fetchone()
+        last_assistant = conn.execute(
+            "SELECT MAX(id) AS id FROM messages WHERE session_id = ? AND role = 'assistant'",
+            (session_id,),
+        ).fetchone()
+        u = last_user["id"] if last_user else None
+        a = last_assistant["id"] if last_assistant else None
+        return a is not None and (u is None or a > u)
+
+
 def delete_last_n_messages(session_id: str, n: int) -> None:
     """删除指定会话中最后 n 条消息"""
     with get_connection() as conn:

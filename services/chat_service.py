@@ -148,7 +148,11 @@ class ChatService:
         # 先确保会话存在（写入 system prompt），再删除、再重新读取
         # 关键：必须在删除之后才读取历史，否则拿到的是过期的旧历史
         self._ensure_session(session_id)
-        db.delete_last_message(session_id, "assistant")
+        # 只有当「最后一条 assistant」出现在「最后一条 user」之后时，
+        # 它才是「待替换的回复」；否则（如上次流被打断、尾部已是 user）
+        # 不应再删，避免误删上一轮的正常回复。
+        if db.assistant_after_last_user(session_id):
+            db.delete_last_message(session_id, "assistant")
         history = db.get_truncated_messages(session_id)
 
         # 构造 API 调用历史；最后一条应是 user 消息（重新回答它）
