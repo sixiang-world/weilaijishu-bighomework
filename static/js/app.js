@@ -1125,19 +1125,13 @@ async function detectAndPublish(msgContentDiv) {
                 setPetState('thinking');
                 showPetEmoji('thinking');
 
-                // 阶段 2：AI 二次验证（page 类型 1.5 秒后触发）
-                var repairTimer = null;
-                if (type === 'page') {
-                    repairTimer = setTimeout(function() {
+                // 发布（page 类型会在请求前触发 onStage('repairing')）
+                const url = await publishContent(rawContent, type, function(stage) {
+                    if (stage === 'repairing') {
                         loadingEl.innerHTML = '<div class="publish-card-icon">' + icon('search') + '</div><div class="publish-card-info"><div class="publish-card-label">AI 正在二次验证...</div><div class="publish-card-hint">检查并修复 HTML 结构</div></div>';
-                        setPetState('thinking');
                         showPetEmoji('confused');
-                    }, 1500);
-                }
-
-                // 发布
-                const url = await publishContent(rawContent, type);
-                if (repairTimer) clearTimeout(repairTimer);
+                    }
+                });
                 loadingEl.remove();
 
                 if (url) {
