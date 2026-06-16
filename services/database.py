@@ -103,6 +103,18 @@ def list_sessions() -> list[dict]:
         conn.close()
 
 
+def get_session_title(session_id: str) -> str:
+    """获取会话标题"""
+    conn = get_connection()
+    try:
+        row = conn.execute(
+            "SELECT title FROM sessions WHERE session_id = ?", (session_id,)
+        ).fetchone()
+        return row["title"] if row else "新对话"
+    finally:
+        conn.close()
+
+
 def session_exists(session_id: str) -> bool:
     """检查会话是否存在"""
     conn = get_connection()

@@ -19,7 +19,7 @@ class Config:
     MODEL_NAME = os.getenv("MOONSHOT_MODEL", "moonshot-v1-8k")
 
     # Flask
-    DEBUG = os.getenv("FLASK_DEBUG", "true").lower() == "true"
+    DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
     PORT = int(os.getenv("FLASK_PORT", "5000"))
 
     @classmethod

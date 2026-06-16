@@ -47,6 +47,14 @@ class ChatService:
 
         return db.get_messages(session_id)
 
+    def _auto_rename(self, session_id: str, first_user_content: str) -> None:
+        """如果会话还是默认标题，自动用第一条用户消息重命名"""
+        if db.get_session_title(session_id) in ("新对话", ""):
+            # 取用户消息前 20 个字符作为标题，去掉首尾空白
+            new_title = first_user_content.strip()[:20]
+            if new_title:
+                db.rename_session(session_id, new_title)
+
     def chat(self, session_id: str, content: str) -> str:
         """
         处理一条用户消息，返回 AI 回复
@@ -79,6 +87,9 @@ class ChatService:
 
         # 保存 AI 回复到数据库
         db.add_message(session_id, "assistant", reply)
+
+        # 自动重命名（用第一条用户消息）
+        self._auto_rename(session_id, content)
 
         return reply
 
@@ -121,6 +132,9 @@ class ChatService:
 
         # 保存完整 AI 回复到数据库
         db.add_message(session_id, "assistant", full_reply)
+
+        # 自动重命名（用第一条用户消息）
+        self._auto_rename(session_id, content)
 
     def clear(self, session_id: str) -> None:
         """清空指定会话的对话历史（保留 system prompt）"""
