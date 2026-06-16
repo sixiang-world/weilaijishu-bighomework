@@ -145,14 +145,14 @@ class ChatService:
 
     def regenerate_stream(self, session_id: str, content: str):
         """重新生成：删除最后一条 assistant 回复，用相同 user 消息重新生成"""
-        history = self._ensure_session(session_id)
-
-        # 删除最后一条 assistant 回复
+        # 先确保会话存在（写入 system prompt），再删除、再重新读取
+        # 关键：必须在删除之后才读取历史，否则拿到的是过期的旧历史
+        self._ensure_session(session_id)
         db.delete_last_message(session_id, "assistant")
+        history = db.get_truncated_messages(session_id)
 
-        # 构造 API 调用历史（不含新的 user 消息，因为 user 消息已存在于 DB）
+        # 构造 API 调用历史；最后一条应是 user 消息（重新回答它）
         messages = [{"role": m["role"], "content": m["content"]} for m in history]
-        # 确保最后一条是 user 消息
         if messages and messages[-1]["role"] != "user":
             messages.append({"role": "user", "content": content})
 
