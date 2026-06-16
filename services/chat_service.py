@@ -81,31 +81,6 @@ class ChatService:
             if new_title:
                 db.rename_session(session_id, new_title)
 
-    def chat(self, session_id: str, content: str) -> str:
-        """处理一条用户消息,返回 AI 回复（非流式）"""
-        history = self._ensure_session(session_id)
-
-        # 构造 API 调用历史
-        messages = [{"role": m["role"], "content": m["content"]} for m in history]
-        messages.append({"role": "user", "content": content})
-
-        try:
-            response = self.client.chat.completions.create(
-                model=Config.MODEL_NAME,
-                messages=messages,
-                stream=False,
-            )
-            reply = response.choices[0].message.content if response.choices else '滴~信号似乎飘走了……没有收到回复。'
-        except Exception as e:
-            reply = f"滴~信号中断了......数据碎片:{str(e)}"
-
-        # API 成功后才保存用户消息和 AI 回复
-        db.add_message(session_id, "user", content)
-        db.add_message(session_id, "assistant", reply)
-        self._auto_rename(session_id, content)
-
-        return reply
-
     def chat_stream(self, session_id: str, content: str):
         """流式处理一条用户消息,逐个 yield token"""
         history = self._ensure_session(session_id)

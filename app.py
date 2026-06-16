@@ -45,23 +45,6 @@ def create_app() -> Flask:
     # 路由：API
     # ================================================================
 
-    @app.route("/api/chat", methods=["POST"])
-    def api_chat():
-        """处理聊天请求（非流式）"""
-        data = request.get_json(silent=True) or {}
-        content = (data.get("content") or "").strip()
-        session_id = sanitize_session_id((data.get("session_id") or "").strip())
-
-        if not content:
-            return jsonify({"reply": "滴～信号为空……请再说一次？", "session_id": session_id})
-
-        reply = chat_service.chat(session_id, content)
-
-        return jsonify({
-            "reply": reply,
-            "session_id": session_id,
-        })
-
     @app.route("/api/chat/stream", methods=["POST"])
     def api_chat_stream():
         """流式聊天接口（SSE）"""
