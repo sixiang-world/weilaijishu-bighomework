@@ -212,6 +212,94 @@ function closeSidebar() {
 }
 
 // ================================================================
+// 打字机引擎 — 逐字输出效果
+// ================================================================
+let typewriterQueue = '';
+let typewriterResolve = null;
+let typewriterElement = null;
+let typewriterRunning = false;
+
+/**
+ * 启动打字机，绑定到指定 DOM 元素
+ */
+function startTypewriter(element) {
+    typewriterQueue = '';
+    typewriterRunning = true;
+    typewriterElement = element;
+    element.textContent = '';
+    if (!window._typewriterLoop) {
+        window._typewriterLoop = typewriterLoop();
+    }
+}
+
+/**
+ * 向打字机队列追加文本
+ */
+function feedTypewriter(text) {
+    typewriterQueue += text;
+}
+
+/**
+ * 等待打字机队列消费完毕
+ */
+function waitTypewriterDone() {
+    return new Promise((resolve) => {
+        if (typewriterQueue.length === 0) {
+            typewriterRunning = false;
+            resolve();
+        } else {
+            typewriterResolve = resolve;
+        }
+    });
+}
+
+/**
+ * 打字机后台循环
+ */
+async function typewriterLoop() {
+    const PUNCTUATION = new Set(['。', '！', '？', '…', '～', '.', '!', '?', '\n']);
+    const PAUSE_PUNCTUATION = 120;    // 句末停顿 (ms)
+    const PAUSE_COMMA = 60;           // 逗号停顿
+    const CHAR_DELAY = 28;            // 普通字符延迟
+
+    while (true) {
+        if (typewriterQueue.length > 0 && typewriterElement) {
+            const char = typewriterQueue.charAt(0);
+            typewriterQueue = typewriterQueue.slice(1);
+
+            typewriterElement.textContent += char;
+            scrollToBottom();
+
+            // 根据字符类型决定延迟
+            if (char === '\n') {
+                await sleep(PAUSE_PUNCTUATION);
+            } else if (PUNCTUATION.has(char)) {
+                await sleep(PAUSE_PUNCTUATION + Math.random() * 60);
+            } else if (char === '，' || char === ',' || char === '；' || char === '；') {
+                await sleep(PAUSE_COMMA + Math.random() * 30);
+            } else {
+                await sleep(CHAR_DELAY + Math.random() * 20);
+            }
+        } else {
+            // 队列为空，检查是否结束
+            if (!typewriterRunning && typewriterQueue.length === 0) {
+                if (typewriterResolve) {
+                    typewriterResolve();
+                    typewriterResolve = null;
+                }
+                await sleep(100);
+            } else {
+                await sleep(30);
+            }
+        }
+    }
+}
+
+function sleep(ms) {
+    return new Promise(r => setTimeout(r, ms));
+}
+
+// ================================================================
 // 发送消息（流式）
 // ================================================================
 async function sendMessage() {
@@ -259,12 +347,14 @@ async function sendMessage() {
         chatContainer.appendChild(msgDiv);
         const contentDiv = msgDiv.querySelector('.msg-content');
 
-        // 读取 SSE 流
+        // 读取 SSE 流 — 打字机模式
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
         let fullReply = '';
-        let lastTypeLength = 0;
+
+        // 启动打字机协程
+        startTypewriter(contentDiv);
 
         while (true) {
             const { done, value } = await reader.read();
@@ -283,12 +373,16 @@ async function sendMessage() {
                     const parsed = JSON.parse(payload);
                     if (parsed.token) {
                         fullReply += parsed.token;
-                        contentDiv.textContent = fullReply;
-                        scrollToBottom();
+                        // 喂给打字机
+                        feedTypewriter(parsed.token);
                     }
                 } catch (_) {}
             }
         }
+
+        // SSE 流已结束，通知打字机排空队列
+        typewriterRunning = false;
+        await waitTypewriterDone();
 
         // 移除 streaming 标记
         contentDiv.classList.remove('streaming');
@@ -298,6 +392,8 @@ async function sendMessage() {
 
     } catch (err) {
         removeLoading();
+        typewriterRunning = false;
+        typewriterQueue = '';
         // 移除可能存在的半成品消息
         const streaming = document.getElementById('streamingMsg');
         if (streaming) streaming.closest('.message').remove();
