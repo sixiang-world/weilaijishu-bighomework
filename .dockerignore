@@ -1,0 +1,28 @@
+# Git
+.git/
+.gitignore
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# 环境变量（含 API Key，不能进镜像）
+.env
+.env.local
+
+# Windows 相关
+start.bat
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+
+# Docker（避免嵌套）
+Dockerfile
+.dockerignore
+
+# 日志
+*.log
