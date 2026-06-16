@@ -150,13 +150,13 @@ function getRobotSVG(state) {
         case 'thinking':
             // 思考：一只眼微闭，手托下巴
             eyes = `
-                <rect x="44" y="52" width="10" height="10" fill="${k}"/>
+                <rect x="44" y="44" width="10" height="10" fill="${k}"/>
                 <rect x="46.5" y="54.5" width="5" height="5" fill="${faceColor}" id="pupil-l"/>
-                <rect x="66" y="52" width="10" height="8" fill="${k}"/>
-                <rect x="66" y="56" width="10" height="4" fill="${faceColor}"/>
+                <rect x="66" y="44" width="10" height="8" fill="${k}"/>
+                <rect x="66" y="48" width="10" height="4" fill="${faceColor}"/>
                 <rect x="68.5" y="53.5" width="5" height="4" fill="${faceColor}" id="pupil-r"/>
             `;
-            mouth = `<rect x="50" y="72" width="14" height="4" fill="${k}" transform="rotate(-5 57 74)"/>`;
+            mouth = `<rect x="50" y="64" width="14" height="4" fill="${k}" transform="rotate(-5 57 74)"/>`;
             arms = `
                 <rect x="18" y="70" width="8" height="28" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
                 <rect x="10" y="68" width="12" height="8" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
@@ -172,14 +172,14 @@ function getRobotSVG(state) {
         case 'replying':
             // 回复：开心嘴，双手张开
             eyes = `
-                <rect x="44" y="52" width="10" height="10" fill="${k}"/>
+                <rect x="44" y="44" width="10" height="10" fill="${k}"/>
                 <rect x="46.5" y="54.5" width="5" height="5" fill="${faceColor}" id="pupil-l"/>
-                <rect x="66" y="52" width="10" height="10" fill="${k}"/>
+                <rect x="66" y="44" width="10" height="10" fill="${k}"/>
                 <rect x="68.5" y="54.5" width="5" height="5" fill="${faceColor}" id="pupil-r"/>
             `;
             mouth = `
-                <rect x="46" y="72" width="22" height="6" fill="${k}"/>
-                <rect x="48" y="72" width="18" height="2" fill="${faceColor}"/>
+                <rect x="46" y="64" width="22" height="6" fill="${k}"/>
+                <rect x="48" y="64" width="18" height="2" fill="${faceColor}"/>
             `;
             arms = `
                 <rect x="14" y="62" width="8" height="28" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
@@ -193,12 +193,12 @@ function getRobotSVG(state) {
         default:
             // 空闲：正常眼，微笑，手臂自然下垂
             eyes = `
-                <rect x="44" y="52" width="10" height="10" fill="${k}"/>
+                <rect x="44" y="44" width="10" height="10" fill="${k}"/>
                 <rect x="46.5" y="54.5" width="5" height="5" fill="${faceColor}" id="pupil-l"/>
-                <rect x="66" y="52" width="10" height="10" fill="${k}"/>
+                <rect x="66" y="44" width="10" height="10" fill="${k}"/>
                 <rect x="68.5" y="54.5" width="5" height="5" fill="${faceColor}" id="pupil-r"/>
             `;
-            mouth = `<rect x="48" y="72" width="18" height="4" fill="${k}"/>`;
+            mouth = `<rect x="48" y="64" width="18" height="4" fill="${k}"/>`;
             arms = `
                 <rect x="20" y="64" width="8" height="30" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
                 <rect x="84" y="64" width="8" height="30" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
@@ -228,8 +228,8 @@ function getRobotSVG(state) {
         ${mouth}
 
         <!-- 脸颊装饰 -->
-        <rect x="34" y="62" width="8" height="4" rx="2" fill="${bodyColor}" opacity="0.25"/>
-        <rect x="72" y="62" width="8" height="4" rx="2" fill="${bodyColor}" opacity="0.25"/>
+        <rect x="34" y="54" width="8" height="4" rx="2" fill="${bodyColor}" opacity="0.25"/>
+        <rect x="72" y="54" width="8" height="4" rx="2" fill="${bodyColor}" opacity="0.25"/>
         </g>
 
         <!-- 身体 -->
@@ -354,8 +354,8 @@ function updateFaceFollow(e) {
     const pr = document.getElementById('pupil-r');
     if (pl && pr) {
         const eyes = [
-            { el: pl, cx: 49, cy: 57, R: 5 },
-            { el: pr, cx: 71, cy: 57, R: 5 }
+            { el: pl, cx: 49, cy: 49, R: 5 },
+            { el: pr, cx: 71, cy: 49, R: 5 }
         ];
         for (const eye of eyes) {
             const edx = mx - eye.cx;
