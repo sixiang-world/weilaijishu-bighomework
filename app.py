@@ -38,8 +38,8 @@ def create_app() -> Flask:
 
     @app.route("/chat/<session_id>")
     def chat_page(session_id):
-        """带会话 ID 的聊天页面"""
-        return render_template("index.html", session_id=session_id)
+        """带会话 ID 的聊天页面（前端从 window.location 自行解析 session_id）"""
+        return render_template("index.html")
 
     # ================================================================
     # 路由：API

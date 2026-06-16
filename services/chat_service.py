@@ -90,6 +90,7 @@ class ChatService:
         messages.append({"role": "user", "content": content})
 
         full_reply = ""
+        ok = True
         try:
             stream = self.client.chat.completions.create(
                 model=Config.MODEL_NAME,
@@ -109,14 +110,15 @@ class ChatService:
             db.add_message(session_id, "user", content)
             return
         except Exception as e:
-            error_msg = f"滴~信号中断了......数据碎片:{str(e)}"
-            full_reply = error_msg
-            yield error_msg
+            # API 异常：向用户展示错误，但不写入历史（避免污染下一轮上下文）
+            ok = False
+            yield f"滴~信号中断了......数据碎片:{str(e)}"
 
-        # 正常完成：保存用户消息和完整回复
+        # 始终保存用户消息；仅成功时保存 assistant 回复
         db.add_message(session_id, "user", content)
-        db.add_message(session_id, "assistant", full_reply)
-        self._auto_rename(session_id, content)
+        if ok and full_reply:
+            db.add_message(session_id, "assistant", full_reply)
+            self._auto_rename(session_id, content)
 
     def regenerate_stream(self, session_id: str, content: str):
         """重新生成：删除最后一条 assistant 回复，用相同 user 消息重新生成"""
@@ -136,6 +138,7 @@ class ChatService:
             messages.append({"role": "user", "content": content})
 
         full_reply = ""
+        ok = True
         try:
             stream = self.client.chat.completions.create(
                 model=Config.MODEL_NAME,
@@ -153,12 +156,13 @@ class ChatService:
         except GeneratorExit:
             return
         except Exception as e:
-            error_msg = f"滴~信号中断了......数据碎片:{str(e)}"
-            full_reply = error_msg
-            yield error_msg
+            # API 异常：展示错误但不写入历史
+            ok = False
+            yield f"滴~信号中断了......数据碎片:{str(e)}"
 
-        # 保存新的 assistant 回复
-        db.add_message(session_id, "assistant", full_reply)
+        # 仅成功时保存新的 assistant 回复
+        if ok and full_reply:
+            db.add_message(session_id, "assistant", full_reply)
 
     def repair_html(self, broken_html: str) -> str:
         """用 AI 修复 HTML 结构问题"""
