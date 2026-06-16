@@ -24,9 +24,6 @@
     --gray:       #6B6B6B;
     --gray-light: #AAAAAA;
 
-    --mx: 50vw;
-    --my: 50vh;
-
     /* 布局尺寸 */
     --sidebar-width: 260px;
     --sidebar-collapsed: 48px;
@@ -65,35 +62,7 @@ body {
     );
 }
 
-.cut-beam {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    overflow: hidden;
-}
-.cut-beam::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 200vw;
-    height: 4px;
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(214,40,40,0.12) 30%,
-        rgba(214,40,40,0.25) 50%,
-        rgba(214,40,40,0.12) 70%,
-        transparent 100%
-    );
-    transform-origin: 0 0;
-    transform:
-        translate(var(--mx), var(--my))
-        rotate(-30deg)
-        translateX(-100vw);
-    transition: transform 0.15s ease-out;
-}
+
 
 .radial-ring {
     position: fixed;
@@ -993,8 +962,15 @@ body.sidebar-is-collapsed .main-layout {
     opacity: 0.7;
 }
 .publish-card-icon {
-    font-size: 28px;
     flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+}
+.publish-card-icon svg {
+    width: 24px;
+    height: 24px;
 }
 .publish-card-info {
     flex: 1;

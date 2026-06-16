@@ -252,6 +252,32 @@ function getRobotSVG(state) {
     </svg>`;
 }
 
+// ================================================================
+// 构成主义 SVG 图标系统
+// ================================================================
+const ICONS = {
+    // 发布：向上箭头 + 底座
+    upload: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none"><path d="M12 3L8 7h3v8h2V7h3L12 3z" fill="#D62828"/><rect x="4" y="17" width="16" height="3" rx="1" fill="#1A1A1A"/></svg>`,
+    // 验证：放大镜
+    search: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none"><circle cx="10" cy="10" r="6" stroke="#6366F1" stroke-width="2.5"/><line x1="14.5" y1="14.5" x2="20" y2="20" stroke="#6366F1" stroke-width="2.5" stroke-linecap="square"/></svg>`,
+    // 成功：粗对勾
+    check: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none"><rect x="2" y="2" width="20" height="20" rx="2" fill="#1A1A1A"/><path d="M6 12l4 4 8-8" stroke="#D62828" stroke-width="3" stroke-linecap="square" stroke-linejoin="square"/></svg>`,
+    // 失败：粗叉号
+    error: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none"><rect x="2" y="2" width="20" height="20" rx="2" fill="#D62828"/><path d="M7 7l10 10M17 7L7 17" stroke="#F5F0E6" stroke-width="2.5" stroke-linecap="square"/></svg>`,
+    // 文档：带折角的纸
+    doc: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none"><path d="M4 2h10l6 6v14H4V2z" fill="#F5F0E6" stroke="#1A1A1A" stroke-width="2"/><path d="M14 2v6h6" fill="none" stroke="#1A1A1A" stroke-width="2"/><line x1="8" y1="10" x2="16" y2="10" stroke="#D62828" stroke-width="1.5"/><line x1="8" y1="14" x2="16" y2="14" stroke="#1A1A1A" stroke-width="1" opacity="0.3"/><line x1="8" y1="17" x2="13" y2="17" stroke="#1A1A1A" stroke-width="1" opacity="0.3"/></svg>`,
+    // 幻灯片：网格
+    ppt: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" fill="#F5F0E6" stroke="#1A1A1A" stroke-width="2"/><line x1="12" y1="3" x2="12" y2="17" stroke="#1A1A1A" stroke-width="1.5"/><line x1="2" y1="10" x2="22" y2="10" stroke="#1A1A1A" stroke-width="1.5"/><rect x="9" y="19" width="6" height="2" fill="#D62828"/></svg>`,
+    // 网页：圆形 + 十字
+    page: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none"><circle cx="12" cy="12" r="9" stroke="#1A1A1A" stroke-width="2"/><ellipse cx="12" cy="12" rx="4" ry="9" stroke="#1A1A1A" stroke-width="1.5"/><line x1="3" y1="12" x2="21" y2="12" stroke="#1A1A1A" stroke-width="1.5"/><circle cx="12" cy="12" r="2" fill="#D62828"/></svg>`,
+    // 加载：旋转方块
+    loading: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none"><rect x="5" y="5" width="14" height="14" rx="2" fill="none" stroke="#D62828" stroke-width="2" stroke-dasharray="6 4"><animateTransform attributeName="transform" type="rotate" values="0 12 12;360 12 12" dur="2s" repeatCount="indefinite"/></rect></svg>`,
+};
+
+function icon(name) {
+    return ICONS[name] || '';
+}
+
 // 桌宠状态管理
 let petState = 'idle';
 let petEmojiTimeout = null;
@@ -986,24 +1012,22 @@ function repairHTML(html) {
 }
 
 function renderPublishCard(url, type) {
-    const labels = { doc: '文档', ppt: '幻灯片', page: '网页' };
-    const icons = { doc: '📄', ppt: '📊', page: '🌐' };
-    const label = labels[type] || '页面';
-    const icon = icons[type] || '🔗';
+    const labels = { doc: '文档已生成', ppt: '幻灯片已生成', page: '网页已生成' };
+    const iconMap = { doc: 'doc', ppt: 'ppt', page: 'page' };
+    const label = labels[type] || '页面已生成';
+    const iconSvg = icon(iconMap[type] || 'page');
 
-    return `
-        <div class="publish-card" data-type="${type}">
-            <div class="publish-card-icon">${icon}</div>
-            <div class="publish-card-info">
-                <div class="publish-card-label">${label}已生成</div>
-                <div class="publish-card-url">${url}</div>
-            </div>
-            <div class="publish-card-actions">
-                <a href="${url}" target="_blank" class="publish-card-btn">打开预览</a>
-                <button class="publish-card-btn" onclick="copyUrl(this, '${url}')">复制链接</button>
-            </div>
-        </div>
-    `;
+    return '<div class="publish-card" data-type="' + type + '">' +
+        '<div class="publish-card-icon">' + iconSvg + '</div>' +
+        '<div class="publish-card-info">' +
+            '<div class="publish-card-label">' + label + '</div>' +
+            '<div class="publish-card-url">' + url + '</div>' +
+        '</div>' +
+        '<div class="publish-card-actions">' +
+            '<a href="' + url + '" target="_blank" class="publish-card-btn">打开预览</a>' +
+            '<button class="publish-card-btn" onclick="copyUrl(this, \'' + url + '\')">复制链接</button>' +
+        '</div>' +
+    '</div>';
 }
 
 function copyUrl(btn, url) {
@@ -1038,7 +1062,7 @@ async function detectAndPublish(msgContentDiv) {
                 // 阶段 1：正在发布
                 const loadingEl = document.createElement('div');
                 loadingEl.className = 'publish-card loading';
-                loadingEl.innerHTML = '<div class="publish-card-icon">📦</div><div class="publish-card-info"><div class="publish-card-label">正在发布...</div><div class="publish-card-hint">内容生成完毕，准备上传</div></div>';
+                loadingEl.innerHTML = '<div class="publish-card-icon">' + icon('upload') + '</div><div class="publish-card-info"><div class="publish-card-label">正在发布...</div><div class="publish-card-hint">内容生成完毕，准备上传</div></div>';
                 msgContentDiv.appendChild(loadingEl);
                 setPetState('thinking');
                 showPetEmoji('thinking');
@@ -1047,7 +1071,7 @@ async function detectAndPublish(msgContentDiv) {
                 var repairTimer = null;
                 if (type === 'page') {
                     repairTimer = setTimeout(function() {
-                        loadingEl.innerHTML = '<div class="publish-card-icon">🔍</div><div class="publish-card-info"><div class="publish-card-label">AI 正在二次验证...</div><div class="publish-card-hint">检查并修复 HTML 结构</div></div>';
+                        loadingEl.innerHTML = '<div class="publish-card-icon">' + icon('search') + '</div><div class="publish-card-info"><div class="publish-card-label">AI 正在二次验证...</div><div class="publish-card-hint">检查并修复 HTML 结构</div></div>';
                         setPetState('thinking');
                         showPetEmoji('confused');
                     }, 1500);
@@ -1067,7 +1091,7 @@ async function detectAndPublish(msgContentDiv) {
                     setTimeout(function() { setPetState('idle'); }, 1200);
                 } else {
                     msgContentDiv.insertAdjacentHTML('beforeend',
-                        '<div class="publish-card error"><div class="publish-card-icon">❌</div><div class="publish-card-info"><div class="publish-card-label">发布失败</div></div></div>'
+                        '<div class="publish-card error"><div class="publish-card-icon">' + icon('error') + '</div><div class="publish-card-info"><div class="publish-card-label">发布失败</div></div></div>'
                     );
                     showPetEmoji('confused');
                     setTimeout(function() { setPetState('idle'); }, 1200);
@@ -1175,14 +1199,6 @@ async function clearChat() {
 
     showWelcome();
 }
-
-// ================================================================
-// 鼠标跟随光束
-// ================================================================
-document.addEventListener('mousemove', function (e) {
-    document.documentElement.style.setProperty('--mx', e.clientX + 'px');
-    document.documentElement.style.setProperty('--my', e.clientY + 'px');
-});
 
 // ================================================================
 // CRT 滤镜
