@@ -5,6 +5,7 @@
 
 import json
 import uuid
+import re
 import urllib.request
 import urllib.error
 
@@ -143,6 +144,66 @@ def create_app() -> Flask:
 
     TEXTDB_BASE = "https://textdb.hunluan.space"
 
+    def repair_html(html):
+        """修复常见 HTML 结构问题"""
+        # 修复 charset
+        html = re.sub(r'charset=["\']?GB2312["\']?', 'charset="UTF-8"', html, flags=re.IGNORECASE)
+        html = re.sub(r'charset=["\']?gbk["\']?', 'charset="UTF-8"', html, flags=re.IGNORECASE)
+
+        # 确保有 DOCTYPE
+        if not html.strip().lower().startswith('<!doctype'):
+            html = '<!DOCTYPE html>\n' + html
+
+        # 确保有 html 标签
+        if '<html' not in html:
+            html = html.replace('<!DOCTYPE html>', '<!DOCTYPE html>\n<html lang="zh-CN">', 1)
+            if '</html>' not in html:
+                html += '\n</html>'
+
+        # 确保有 head
+        if '<head>' not in html.lower():
+            head = '<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n</head>'
+            html = re.sub(r'(<html[^>]*>)', r'\1\n' + head, html, count=1)
+
+        # 确保有 viewport meta
+        if 'viewport' not in html:
+            html = re.sub(r'(<head>)', r'\1\n<meta name="viewport" content="width=device-width, initial-scale=1.0">', html, count=1)
+
+        # 确保有 body
+        if '<body' not in html.lower():
+            head_end = html.lower().find('</head>')
+            if head_end != -1:
+                html = html[:head_end + 7] + '\n<body>' + html[head_end + 7:]
+
+        # 修复未闭合的常见标签（在 body 关闭前插入）
+        unclosed = []
+        for tag in ['div', 'p', 'span', 'section', 'article', 'header', 'footer', 'main', 'nav', 'ul', 'li', 'h1', 'h2', 'h3']:
+            opens = len(re.findall(f'<{tag}[\\s>]', html, re.IGNORECASE))
+            closes = len(re.findall(f'</{tag}>', html, re.IGNORECASE))
+            if opens > closes:
+                unclosed.extend([f'</{tag}>'] * (opens - closes))
+
+        if unclosed:
+            # 在 </body> 前插入闭合标签
+            body_close = html.lower().rfind('</body>')
+            if body_close != -1:
+                html = html[:body_close] + '\n'.join(unclosed) + '\n' + html[body_close:]
+            else:
+                html += '\n' + '\n'.join(unclosed) + '\n</body>'
+
+        # 确保有 </body>
+        if '</body>' not in html.lower():
+            html += '\n</body>'
+
+        # 确保有 </html>
+        if '</html>' not in html.lower():
+            html += '\n</html>'
+
+        # 移除 script 标签（安全考虑）
+        html = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL|re.IGNORECASE)
+
+        return html
+
     @app.route("/api/publish", methods=["POST"])
     def api_publish():
         """将内容发布到 textdb，返回可访问链接
@@ -156,6 +217,10 @@ def create_app() -> Flask:
 
         if not content:
             return jsonify({"error": "内容为空"}), 400
+
+        # 网页类型自动修复 HTML
+        if pub_type == "page":
+            content = repair_html(content)
 
         # 生成唯一 key
         key = f"qx_{pub_type}_{uuid.uuid4().hex[:8]}"
