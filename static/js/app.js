@@ -1005,10 +1005,12 @@ async function streamRegenerate(userText) {
 // 发布系统 — doc/ppt/page
 // ================================================================
 
-async function publishContent(content, type) {
-    // 如果是网页类型，前端先修复
+async function publishContent(content, type, onStage) {
+    // 如果是网页类型，前端先规则修复
     if (type === 'page') {
         content = repairHTML(content);
+        // 后端会在 /api/publish 内做 AI 二次验证修复，这里提示用户
+        if (typeof onStage === 'function') onStage('repairing');
     }
     try {
         const res = await fetch('/api/publish', {
