@@ -86,4 +86,4 @@ if __name__ == "__main__":
     print(f"  🎨  风格      构成主义 × 千禧年梦幻")
     print("=" * 56)
 
-    app.run(debug=Config.DEBUG, port=Config.PORT)
+    app.run(debug=Config.DEBUG, host='0.0.0.0', port=Config.PORT)
