@@ -16,31 +16,30 @@ main:
         - docker
       stages:
         - name: compute-tags
+          # 只输出镜像标签，不要加多余 echo，否则 exports.info 会捕获全部 stdout
           script: |
-            echo "◆ 千禧梦 Docker 构建开始 ◆"
-            echo "   Registry: $CNB_DOCKER_REGISTRY"
-            echo "   Repo:     $CNB_REPO_SLUG"
-            echo "   Branch:   $CNB_BRANCH"
-            echo "   Commit:   $CNB_COMMIT_SHORT"
-
-            # 生成镜像标签（latest + 短 SHA）
             echo -n "$CNB_DOCKER_REGISTRY/$CNB_REPO_SLUG_LOWERCASE:latest"
           exports:
             info: TAG_LATEST
 
         - name: build
           script: |
-            echo "◆ 构建镜像: $TAG_LATEST ← $CNB_COMMIT_SHORT"
+            echo "◆ 千禧梦 Docker 构建 ◆"
+            echo "   Registry: $CNB_DOCKER_REGISTRY"
+            echo "   Repo:     $CNB_REPO_SLUG"
+            echo "   Branch:   $CNB_BRANCH"
+            echo "   Commit:   $CNB_COMMIT_SHORT"
+            echo "   Tag:      $TAG_LATEST"
 
             docker build \
               -t $TAG_LATEST \
               -t $CNB_DOCKER_REGISTRY/$CNB_REPO_SLUG_LOWERCASE:$CNB_COMMIT_SHORT \
               .
 
-            echo "◆ 镜像构建完成，开始推送 ◆"
+            echo "◆ 镜像构建完成 ◆"
 
         - name: push
           script: |
+            echo "◆ 推送至 CNB 制品库 ◆"
             docker push $CNB_DOCKER_REGISTRY/$CNB_REPO_SLUG_LOWERCASE --all-tags
-            echo "◆ 推送完成 ◆"
-            echo "   Image: $TAG_LATEST"
+            echo "◆ 推送完成: $TAG_LATEST ◆"
