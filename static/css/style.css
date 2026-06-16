@@ -846,6 +846,147 @@ body {
     transform: skewX(-3deg);
 }
 
+/* -------------------- CRT 滤镜 / 开机动画 -------------------- */
+
+/* CRT 扫描线覆盖层 */
+.crt-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9998;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+}
+.crt-overlay.active {
+    opacity: 1;
+}
+/* 扫描线 */
+.crt-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0,0,0,0.10) 0px,
+        rgba(0,0,0,0.10) 1px,
+        transparent 1px,
+        transparent 3px
+    );
+}
+/* 微弱 RGB 分离 */
+.crt-overlay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        90deg,
+        rgba(255,0,0,0.015) 0%,
+        transparent 25%,
+        rgba(0,255,255,0.015) 75%,
+        transparent 100%
+    );
+    mix-blend-mode: screen;
+}
+
+/* CRT 开机动画容器 */
+.crt-boot {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    background: var(--cream);
+    animation: crtBoot 0.8s ease forwards;
+}
+
+@keyframes crtBoot {
+    0% {
+        opacity: 1;
+        transform: scale(1.15);
+        filter: brightness(8);
+        background: #FFFFFF;
+    }
+    6% {
+        opacity: 1;
+        transform: scale(1.10);
+        filter: brightness(6);
+        background: #FFFFFF;
+    }
+    12% {
+        opacity: 0.92;
+        transform: scale(1.04);
+        filter: brightness(2);
+        background: var(--cream);
+    }
+    25% {
+        opacity: 0.96;
+        transform: scale(1.01);
+        filter: brightness(1.2);
+    }
+    45% {
+        opacity: 0.98;
+        transform: scale(1.005);
+        filter: brightness(1);
+    }
+    70% {
+        opacity: 0.995;
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1);
+        filter: brightness(1);
+        pointer-events: none;
+    }
+}
+
+/* CRT 切换按钮 */
+.btn-crt-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9997;
+    width: 42px;
+    height: 42px;
+    background: var(--black);
+    border: 2px solid rgba(245,240,230,0.12);
+    color: rgba(245,240,230,0.3);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    clip-path: polygon(20% 0, 100% 0, 80% 100%, 0 100%);
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    opacity: 0.4;
+}
+.btn-crt-toggle:hover {
+    opacity: 1;
+    border-color: var(--red);
+    color: var(--red);
+    background: var(--black);
+    transform: scale(1.1);
+}
+.btn-crt-toggle.active {
+    color: var(--red);
+    border-color: var(--red);
+    opacity: 0.8;
+}
+.btn-crt-toggle.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 4px;
+    right: 4px;
+    height: 2px;
+    background: var(--red);
+}
+
+/* CRT 模式下的面板发光边框 */
+.crt-overlay.active ~ .panel {
+    box-shadow: 0 0 40px rgba(214,40,40,0.06);
+}
+
 /* -------------------- 响应式 -------------------- */
 @media (max-width: 520px) {
     body {

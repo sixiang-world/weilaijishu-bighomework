@@ -511,6 +511,28 @@ document.addEventListener('mousemove', function (e) {
 });
 
 // ================================================================
+// CRT 滤镜切换
+// ================================================================
+const crtOverlay = document.getElementById('crtOverlay');
+const btnCrtToggle = document.getElementById('btnCrtToggle');
+let crtEnabled = false;
+
+btnCrtToggle.addEventListener('click', function () {
+    crtEnabled = !crtEnabled;
+    crtOverlay.classList.toggle('active', crtEnabled);
+    btnCrtToggle.classList.toggle('active', crtEnabled);
+    btnCrtToggle.textContent = crtEnabled ? '⊟' : '⊞';
+});
+
+// 开机动画播放完成后移除 DOM 节点
+const crtBoot = document.getElementById('crtBoot');
+if (crtBoot) {
+    crtBoot.addEventListener('animationend', function () {
+        this.remove();
+    });
+}
+
+// ================================================================
 // 工具函数
 // ================================================================
 function scrollToBottom() {
