@@ -4,6 +4,9 @@
 """
 
 import json
+import uuid
+import urllib.request
+import urllib.error
 
 from flask import Flask, request, jsonify, render_template, Response, stream_with_context
 from flask_cors import CORS
@@ -133,6 +136,52 @@ def create_app() -> Flask:
         return jsonify({
             "reply": "滴～记忆体已清空，梦境重启。",
         })
+
+    # ================================================================
+    # 路由：发布到 textdb
+    # ================================================================
+
+    TEXTDB_BASE = "https://textdb.hunluan.space"
+
+    @app.route("/api/publish", methods=["POST"])
+    def api_publish():
+        """将内容发布到 textdb，返回可访问链接
+
+        请求体：{"content": "内容", "type": "doc|ppt|page"}
+        返回体：{"key": "xxx", "url": "渲染链接", "type": "doc|ppt|page"}
+        """
+        data = request.get_json(silent=True) or {}
+        content = (data.get("content") or "").strip()
+        pub_type = (data.get("type") or "page").strip()
+
+        if not content:
+            return jsonify({"error": "内容为空"}), 400
+
+        # 生成唯一 key
+        key = f"qx_{pub_type}_{uuid.uuid4().hex[:8]}"
+
+        # POST 到 textdb
+        try:
+            req = urllib.request.Request(
+                f"{TEXTDB_BASE}/update/",
+                data=json.dumps({"key": key, "value": content}).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                pass
+        except Exception as e:
+            return jsonify({"error": f"发布失败: {str(e)}"}), 502
+
+        # 根据类型返回渲染链接
+        if pub_type == "doc":
+            url = f"{TEXTDB_BASE}/md/{key}"
+        elif pub_type == "ppt":
+            url = f"{TEXTDB_BASE}/p/{key}"
+        else:
+            url = f"{TEXTDB_BASE}/p/{key}"
+
+        return jsonify({"key": key, "url": url, "type": pub_type})
 
     return app
 

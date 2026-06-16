@@ -970,6 +970,115 @@ body.sidebar-is-collapsed .main-layout {
     border-color: var(--indigo);
 }
 
+/* -------------------- 发布卡片 -------------------- */
+.publish-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    padding: 14px 16px;
+    background: var(--cream-warm);
+    border: 2px solid var(--black);
+    border-left: 4px solid var(--red);
+    transition: border-color 0.3s ease;
+}
+.publish-card:hover {
+    border-left-color: var(--indigo);
+}
+.publish-card.loading {
+    opacity: 0.6;
+}
+.publish-card.error {
+    border-left-color: var(--red-dark);
+    opacity: 0.7;
+}
+.publish-card-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+}
+.publish-card-info {
+    flex: 1;
+    min-width: 0;
+}
+.publish-card-label {
+    font-size: 13px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--black);
+}
+.publish-card-url {
+    font-size: 11px;
+    color: var(--gray);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+    font-family: 'Courier New', monospace;
+}
+.publish-card-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.publish-card-btn {
+    padding: 6px 12px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border: 2px solid var(--black);
+    background: var(--cream);
+    color: var(--black);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+.publish-card-btn:hover {
+    background: var(--red);
+    color: var(--cream);
+    border-color: var(--red);
+}
+
+/* 发布下拉菜单 */
+.msg-action-dropdown {
+    position: relative;
+    display: inline-block;
+}
+.msg-action-menu {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    background: var(--black);
+    border: 2px solid var(--red);
+    z-index: 50;
+    min-width: 100px;
+}
+.msg-action-dropdown:hover .msg-action-menu {
+    display: block;
+}
+.msg-action-menu button {
+    display: block;
+    width: 100%;
+    padding: 8px 14px;
+    background: none;
+    border: none;
+    color: var(--cream);
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s ease;
+}
+.msg-action-menu button:hover {
+    background: var(--red);
+}
+
 /* ============================================================
    桌宠面板 — 右侧
    ============================================================ */

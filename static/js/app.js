@@ -496,7 +496,19 @@ async function newSession() {
     closeSidebar();
     showWelcome();
     messageInput.focus();
-    await loadSessions();
+    await // 发布按钮事件委托
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('[data-publish]');
+    if (btn) {
+        const type = btn.dataset.publish;
+        const msgContent = btn.closest('.msg-content');
+        if (msgContent) {
+            publishMessage(btn, type);
+        }
+    }
+});
+
+loadSessions();
 }
 
 async function deleteSession(sessionId) {
@@ -722,6 +734,7 @@ async function sendMessage() {
                     <div class="msg-actions">
                         <button class="msg-action-btn" onclick="copyMessage(this)">复制</button>
                         <button class="msg-action-btn" onclick="regenerate(this)">重新生成</button>
+                        <div class="msg-action-dropdown"><button class="msg-action-btn">发布 ▾</button><div class="msg-action-menu"><button data-publish="doc">文档</button><button data-publish="ppt">幻灯片</button><button data-publish="page">网页</button></div></div>
                         <span class="msg-time">${timeStr}</span>
                     </div>
                 </div>
@@ -764,6 +777,7 @@ async function sendMessage() {
         // 最终渲染 + 代码复制按钮
         contentDiv.innerHTML = renderMarkdown(fullReply);
         addCodeCopyButtons(msgDiv.parentElement || msgDiv);
+        detectAndPublish(contentDiv);
 
         // 回复完成 — 桌宠弹出一个随机 emoji，然后回到空闲
         const emojiKeys = ['happy', 'surprise', 'excited', 'cool'];
@@ -827,6 +841,7 @@ function addMessage(text, type) {
                 <div class="msg-actions">
                     <button class="msg-action-btn" onclick="copyMessage(this)">复制</button>
                     ${type === 'robot' ? '<button class="msg-action-btn" onclick="regenerate(this)">重新生成</button>' : ''}
+                    ${type === 'robot' ? '<div class="msg-action-dropdown"><button class="msg-action-btn">发布 ▾</button><div class="msg-action-menu"><button data-publish="doc">文档</button><button data-publish="ppt">幻灯片</button><button data-publish="page">网页</button></div></div>' : ''}
                     <span class="msg-time">${timeStr}</span>
                 </div>
             </div>
@@ -888,7 +903,6 @@ function copyMessage(btn) {
 
 function regenerate(btn) {
     const msgDiv = btn.closest('.message');
-    // 找到这条消息之前的最近一条用户消息
     const allMessages = chatContainer.querySelectorAll('.message');
     let lastUserText = '';
     for (const msg of allMessages) {
@@ -897,17 +911,129 @@ function regenerate(btn) {
         }
         if (msg === msgDiv) break;
     }
-    // 删除当前机器人消息及之后的所有消息
     let next = msgDiv;
     while (next) {
         const toRemove = next;
         next = next.nextElementSibling;
         toRemove.remove();
     }
-    // 重新发送
     if (lastUserText) {
         messageInput.value = lastUserText;
         sendMessage();
+    }
+}
+
+// ================================================================
+// 发布系统 — doc/ppt/page
+// ================================================================
+
+async function publishContent(content, type) {
+    try {
+        const res = await fetch('/api/publish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: content, type: type }),
+        });
+        const data = await res.json();
+        if (data.url) {
+            return data.url;
+        }
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function renderPublishCard(url, type) {
+    const labels = { doc: '文档', ppt: '幻灯片', page: '网页' };
+    const icons = { doc: '📄', ppt: '📊', page: '🌐' };
+    const label = labels[type] || '页面';
+    const icon = icons[type] || '🔗';
+
+    return `
+        <div class="publish-card" data-type="${type}">
+            <div class="publish-card-icon">${icon}</div>
+            <div class="publish-card-info">
+                <div class="publish-card-label">${label}已生成</div>
+                <div class="publish-card-url">${url}</div>
+            </div>
+            <div class="publish-card-actions">
+                <a href="${url}" target="_blank" class="publish-card-btn">打开预览</a>
+                <button class="publish-card-btn" onclick="copyUrl(this, '${url}')">复制链接</button>
+            </div>
+        </div>
+    `;
+}
+
+function copyUrl(btn, url) {
+    navigator.clipboard.writeText(url).then(function() {
+        btn.textContent = '已复制';
+        setTimeout(function() { btn.textContent = '复制链接'; }, 1500);
+    });
+}
+
+// 检测消息中的 [doc]/[ppt]/[page] 标记并自动发布
+async function detectAndPublish(msgContentDiv) {
+    const text = msgContentDiv.textContent;
+    const types = ['doc', 'ppt', 'page'];
+
+    for (const type of types) {
+        const openTag = `[${type}]`;
+        const closeTag = `[/${type}]`;
+        const startIdx = text.indexOf(openTag);
+        const endIdx = text.indexOf(closeTag);
+
+        if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+            const rawContent = text.substring(startIdx + openTag.length, endIdx).trim();
+            if (rawContent) {
+                // 移除标记文本，保留说明文字
+                const beforeText = text.substring(0, startIdx).trim();
+                if (beforeText) {
+                    msgContentDiv.innerHTML = renderMarkdown(beforeText);
+                } else {
+                    msgContentDiv.innerHTML = '';
+                }
+
+                // 显示加载状态
+                const loadingEl = document.createElement('div');
+                loadingEl.className = 'publish-card loading';
+                loadingEl.innerHTML = '<div class="publish-card-icon">⏳</div><div class="publish-card-info"><div class="publish-card-label">正在发布...</div></div>';
+                msgContentDiv.appendChild(loadingEl);
+
+                // 发布
+                const url = await publishContent(rawContent, type);
+                loadingEl.remove();
+
+                if (url) {
+                    msgContentDiv.insertAdjacentHTML('beforeend', renderPublishCard(url, type));
+                    addCodeCopyButtons(msgContentDiv.closest('.message') || msgContentDiv);
+                } else {
+                    msgContentDiv.insertAdjacentHTML('beforeend',
+                        '<div class="publish-card error"><div class="publish-card-icon">❌</div><div class="publish-card-info"><div class="publish-card-label">发布失败</div></div></div>'
+                    );
+                }
+                return;
+            }
+        }
+    }
+}
+
+// 手动发布当前消息内容
+async function publishMessage(btn, type) {
+    const msgBody = btn.closest('.msg-body') || btn.closest('.msg-content');
+    const contentDiv = msgBody.querySelector('.msg-content');
+    const text = contentDiv.textContent;
+
+    btn.textContent = '发布中...';
+    btn.disabled = true;
+
+    const url = await publishContent(text, type);
+    if (url) {
+        contentDiv.insertAdjacentHTML('beforeend', renderPublishCard(url, type));
+        btn.textContent = '已发布';
+    } else {
+        btn.textContent = '失败';
+        setTimeout(function() { btn.textContent = '发布'; btn.disabled = false; }, 2000);
     }
 }
 
