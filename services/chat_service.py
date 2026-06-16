@@ -165,6 +165,46 @@ class ChatService:
         # 自动重命名(用第一条用户消息)
         self._auto_rename(session_id, content)
 
+
+    def repair_html(self, broken_html: str) -> str:
+        """用 AI 修复 HTML 结构问题"""
+        repair_prompt = (
+            "你是一个 HTML 修复专家。请修复以下 HTML 代码的结构问题，"
+            "输出完整、规范、可直接在浏览器中渲染的 HTML。\n\n"
+            "修复要求：\n"
+            "1. 必须以 <!DOCTYPE html> 开头\n"
+            "2. 必须有完整的 <html>、<head>、<body> 结构\n"
+            "3. charset 必须是 UTF-8\n"
+            "4. 必须有 viewport meta 标签\n"
+            "5. <style> 标签必须在 <head> 内\n"
+            "6. 所有标签必须正确闭合和嵌套\n"
+            "7. CSS 必须在 <style> 标签内\n"
+            "8. 不要添加任何解释或注释，只输出修复后的完整 HTML\n"
+            "9. 不要使用外部 CDN 或 JS 库\n"
+            "10. 保留原始页面的设计和功能，只修复语法问题\n\n"
+            "以下是需要修复的 HTML：\n\n" + broken_html
+        )
+
+        try:
+            response = self.client.chat.completions.create(
+                model=Config.MODEL_NAME,
+                messages=[
+                    {"role": "system", "content": "你是 HTML 修复专家，只输出修复后的完整 HTML 代码，不要加任何解释。"},
+                    {"role": "user", "content": repair_prompt},
+                ],
+                stream=False,
+                temperature=0.1,
+            )
+            fixed = response.choices[0].message.content.strip()
+            # 提取 HTML 部分（可能被 markdown 代码块包裹）
+            if "```html" in fixed:
+                fixed = fixed.split("```html")[1].split("```")[0].strip()
+            elif "```" in fixed:
+                fixed = fixed.split("```")[1].split("```")[0].strip()
+            return fixed if fixed else broken_html
+        except Exception:
+            return broken_html
+
     def clear(self, session_id: str) -> None:
         """清空指定会话的对话历史(保留 system prompt)"""
         db.clear_messages(session_id)

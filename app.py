@@ -218,9 +218,11 @@ def create_app() -> Flask:
         if not content:
             return jsonify({"error": "内容为空"}), 400
 
-        # 网页类型自动修复 HTML
+        # 网页类型自动修复 HTML（后端规则修复 + AI 修复）
         if pub_type == "page":
             content = repair_html(content)
+            # AI 深度修复
+            content = chat_service.repair_html(content)
 
         # 生成唯一 key
         key = f"qx_{pub_type}_{uuid.uuid4().hex[:8]}"
