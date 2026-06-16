@@ -1010,10 +1010,9 @@ async function streamRegenerate(userText) {
 // ================================================================
 
 async function publishContent(content, type, onStage) {
-    // 如果是网页类型，前端先规则修复
+    // 网页类型由后端 /api/publish 统一做「规则修复 + AI 二次验证修复」，
+    // 前端不再重复修复，避免两套规则叠加产生不可预期的结果。
     if (type === 'page') {
-        content = repairHTML(content);
-        // 后端会在 /api/publish 内做 AI 二次验证修复，这里提示用户
         if (typeof onStage === 'function') onStage('repairing');
     }
     try {
@@ -1030,43 +1029,6 @@ async function publishContent(content, type, onStage) {
     } catch (e) {
         return null;
     }
-}
-
-function repairHTML(html) {
-    // 确保有 DOCTYPE
-    if (!html.trim().toLowerCase().startsWith('<!doctype')) {
-        html = '<!DOCTYPE html>\n' + html;
-    }
-    // 确保有 html 标签
-    if (!html.includes('<html')) {
-        html = html.replace('<!DOCTYPE html>', '<!DOCTYPE html>\n<html lang="zh-CN">');
-        if (!html.includes('</html>')) {
-            html = html.replace('</body>', '</body>\n</html>');
-        }
-    }
-    // 确保有 head 标签
-    if (!html.includes('<head>')) {
-        const headContent = '<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width, initial-scale=1.0">\n</head>';
-        html = html.replace(/<html[^>]*>/, '$&\n' + headContent);
-    }
-    // 修复 charset
-    html = html.replace(/charset=["']?GB2312["']?/gi, 'charset="UTF-8"');
-    html = html.replace(/charset=["']?gbk["']?/gi, 'charset="UTF-8"');
-    // 确保有 body 标签
-    if (!html.includes('<body')) {
-        const headEnd = html.indexOf('</head>');
-        if (headEnd !== -1) {
-            html = html.slice(0, headEnd + 7) + '\n<body>' + html.slice(headEnd + 7);
-            if (!html.includes('</body>')) {
-                html += '\n</body>';
-            }
-        }
-    }
-    // 确保有 viewport meta
-    if (!html.includes('viewport')) {
-        html = html.replace(/<head>/, '<head>\n<meta name="viewport" content="width=device-width, initial-scale=1.0">');
-    }
-    return html;
 }
 
 function renderPublishCard(url, type) {
