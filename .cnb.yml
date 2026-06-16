@@ -1,0 +1,46 @@
+# ================================================================
+# 千禧梦 · 构成主义聊天 — CNB 流水线配置
+# 触发：推送到 main 分支 → 构建 Docker 镜像并推送至 CNB 制品库
+# ================================================================
+
+main:
+  push:
+    - name: build-and-push
+      runner:
+        cpus: 2
+      # CI 运行环境：Docker CLI
+      docker:
+        image: docker:24.0-cli
+      # Docker-in-Docker 服务
+      services:
+        - docker
+      stages:
+        - name: compute-tags
+          script: |
+            echo "◆ 千禧梦 Docker 构建开始 ◆"
+            echo "   Registry: $CNB_DOCKER_REGISTRY"
+            echo "   Repo:     $CNB_REPO_SLUG"
+            echo "   Branch:   $CNB_BRANCH"
+            echo "   Commit:   $CNB_COMMIT_SHORT"
+
+            # 生成镜像标签（latest + 短 SHA）
+            echo -n "$CNB_DOCKER_REGISTRY/$CNB_REPO_SLUG_LOWERCASE:latest"
+          exports:
+            info: TAG_LATEST
+
+        - name: build
+          script: |
+            echo "◆ 构建镜像: $TAG_LATEST ← $CNB_COMMIT_SHORT"
+
+            docker build \
+              -t $TAG_LATEST \
+              -t $CNB_DOCKER_REGISTRY/$CNB_REPO_SLUG_LOWERCASE:$CNB_COMMIT_SHORT \
+              .
+
+            echo "◆ 镜像构建完成，开始推送 ◆"
+
+        - name: push
+          script: |
+            docker push $CNB_DOCKER_REGISTRY/$CNB_REPO_SLUG_LOWERCASE --all-tags
+            echo "◆ 推送完成 ◆"
+            echo "   Image: $TAG_LATEST"
