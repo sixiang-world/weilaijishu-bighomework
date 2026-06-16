@@ -578,8 +578,13 @@ body.sidebar-is-collapsed .main-layout {
     transform: skewX(-8deg) scale(1.12);
 }
 
-.msg-content {
+.msg-body {
     max-width: 75%;
+    display: flex;
+    flex-direction: column;
+}
+
+.msg-content {
     padding: 14px 18px;
     font-size: 15px;
     line-height: 1.75;
@@ -587,22 +592,26 @@ body.sidebar-is-collapsed .main-layout {
     position: relative;
 }
 
+.message.robot .msg-body {
+    margin-left: 12px;
+}
 .message.robot .msg-content {
     background: var(--white);
     color: var(--black);
     border-left: 4px solid var(--red);
-    margin-left: 12px;
     transition: border-color 0.3s ease;
 }
 .message.robot .msg-content:hover {
     border-left-color: var(--indigo);
 }
 
+.message.user .msg-body {
+    margin-right: 12px;
+}
 .message.user .msg-content {
     background: var(--white);
     color: var(--black);
     border-right: 4px solid var(--indigo);
-    margin-right: 12px;
     transition: border-color 0.3s ease;
 }
 .message.user .msg-content:hover {
@@ -777,6 +786,184 @@ body.sidebar-is-collapsed .main-layout {
     color: rgba(245,240,230,0.2);
     text-transform: uppercase;
     letter-spacing: 0.08em;
+}
+
+/* 停止按钮 */
+.btn-stop {
+    padding: 14px 24px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 900;
+    background: var(--red-dark);
+    color: var(--cream);
+    border: none;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+    display: none;
+}
+.btn-stop.visible {
+    display: inline-block;
+}
+.btn-stop:hover {
+    background: var(--red);
+}
+
+/* -------------------- 消息操作栏 -------------------- */
+.msg-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 6px;
+    padding: 0 4px;
+}
+.message.robot .msg-actions {
+    margin-left: 56px; /* avatar 40 + gap 12 + border 4 */
+}
+.message.user .msg-actions {
+    justify-content: flex-end;
+    margin-right: 56px;
+}
+.msg-action-btn {
+    background: none;
+    border: none;
+    font-family: 'Helvetica Neue', 'Helvetica', Arial, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray-light);
+    cursor: pointer;
+    padding: 2px 6px;
+    letter-spacing: 0.04em;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+}
+.msg-action-btn:hover {
+    color: var(--red);
+}
+.msg-action-btn.copied {
+    color: var(--indigo);
+}
+.msg-time {
+    font-size: 10px;
+    color: rgba(107,107,107,0.5);
+    font-weight: 400;
+    letter-spacing: 0.05em;
+}
+
+/* -------------------- Markdown 渲染 -------------------- */
+.msg-content p {
+    margin: 0 0 8px;
+}
+.msg-content p:last-child {
+    margin-bottom: 0;
+}
+.msg-content ul, .msg-content ol {
+    margin: 4px 0 8px 18px;
+    padding: 0;
+}
+.msg-content li {
+    margin-bottom: 2px;
+}
+.msg-content strong {
+    font-weight: 900;
+}
+.msg-content em {
+    font-style: italic;
+}
+.msg-content a {
+    color: var(--indigo);
+    text-decoration: underline;
+}
+.msg-content a:hover {
+    color: var(--red);
+}
+.msg-content blockquote {
+    border-left: 3px solid var(--red);
+    margin: 8px 0;
+    padding: 4px 12px;
+    color: var(--gray);
+    background: rgba(214,40,40,0.04);
+}
+.msg-content hr {
+    border: none;
+    border-top: 2px solid rgba(26,26,26,0.1);
+    margin: 12px 0;
+}
+.msg-content table {
+    border-collapse: collapse;
+    margin: 8px 0;
+    font-size: 13px;
+    width: 100%;
+}
+.msg-content th, .msg-content td {
+    border: 1px solid rgba(26,26,26,0.15);
+    padding: 6px 10px;
+    text-align: left;
+}
+.msg-content th {
+    background: rgba(26,26,26,0.06);
+    font-weight: 900;
+}
+
+/* 代码块 */
+.msg-content pre {
+    position: relative;
+    margin: 8px 0;
+    border: 2px solid var(--black);
+    background: #282c34;
+    overflow-x: auto;
+}
+.msg-content pre code {
+    display: block;
+    padding: 14px 16px;
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #abb2bf;
+    background: none;
+}
+.msg-content code {
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 0.9em;
+    background: rgba(26,26,26,0.06);
+    padding: 1px 5px;
+    border: 1px solid rgba(26,26,26,0.1);
+}
+.msg-content pre code {
+    background: none;
+    border: none;
+    padding: 14px 16px;
+}
+
+/* 代码块复制按钮 */
+.code-copy-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(245,240,230,0.1);
+    border: 1px solid rgba(245,240,230,0.2);
+    color: rgba(245,240,230,0.5);
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: all 0.2s ease;
+    z-index: 2;
+}
+.code-copy-btn:hover {
+    background: rgba(214,40,40,0.3);
+    color: var(--cream);
+    border-color: var(--red);
+}
+.code-copy-btn.copied {
+    background: rgba(99,102,241,0.3);
+    color: var(--cream);
+    border-color: var(--indigo);
 }
 
 /* ============================================================

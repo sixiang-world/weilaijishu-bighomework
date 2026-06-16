@@ -18,6 +18,21 @@ const sidebar = document.getElementById('sidebar');
 const sessionList = document.getElementById('sessionList');
 const btnNewChat = document.getElementById('btnNewChat');
 const btnToggleSidebar = document.getElementById('btnToggleSidebar');
+const btnStop = document.getElementById('btnStop');
+
+// ================================================================
+// Markdown 渲染配置
+// ================================================================
+marked.setOptions({
+    highlight: function(code, lang) {
+        if (lang && hljs.getLanguage(lang)) {
+            return hljs.highlight(code, { language: lang }).value;
+        }
+        return hljs.highlightAuto(code).value;
+    },
+    breaks: true,
+    gfm: true
+});
 
 // SVG 图标模板
 const ROBOT_SVG = `<svg viewBox="0 0 40 40" fill="none"><line x1="20" y1="2" x2="20" y2="10" stroke="#F5F0E6" stroke-width="2" stroke-linecap="square"/><circle cx="20" cy="2" r="2" fill="#F5F0E6"/><rect x="6" y="10" width="28" height="22" fill="none" stroke="#F5F0E6" stroke-width="2"/><rect x="12" y="16" width="6" height="6" fill="#F5F0E6"/><rect x="22" y="16" width="6" height="6" fill="#F5F0E6"/><line x1="14" y1="28" x2="26" y2="28" stroke="#F5F0E6" stroke-width="2" stroke-linecap="square"/><rect x="3" y="14" width="5" height="8" fill="none" stroke="#F5F0E6" stroke-width="2"/><rect x="32" y="14" width="5" height="8" fill="none" stroke="#F5F0E6" stroke-width="2"/></svg>`;
@@ -643,6 +658,8 @@ function sleep(ms) {
 // ================================================================
 // 发送消息（流式）
 // ================================================================
+let abortController = null;
+
 async function sendMessage() {
     if (isLoading) return;
 
@@ -662,6 +679,13 @@ async function sendMessage() {
 
     showLoading();
 
+    // 创建 AbortController
+    abortController = new AbortController();
+
+    // 显示停止按钮
+    btnStop.style.display = 'inline-block';
+    btnSend.style.display = 'none';
+
     try {
         const res = await fetch('/api/chat/stream', {
             method: 'POST',
@@ -670,11 +694,13 @@ async function sendMessage() {
                 content: content,
                 session_id: currentSessionId,
             }),
+            signal: abortController.signal,
         });
 
         if (!res.ok) {
             removeLoading();
             setPetState('idle');
+            hideStopButton();
             showError('连接中断，请检查网络 …');
             return;
         }
@@ -684,11 +710,21 @@ async function sendMessage() {
         // 桌宠进入回复态
         setPetState('replying');
 
+        // 创建消息容器（带操作栏）
+        const now = new Date();
+        const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
         const msgDiv = document.createElement('div');
         msgDiv.className = 'message robot';
         msgDiv.innerHTML = `
             <div class="msg-avatar">${ROBOT_SVG}</div>
-            <div class="msg-content streaming" id="streamingMsg"></div>
+            <div class="msg-body">
+                <div class="msg-content streaming" id="streamingMsg"></div>
+                <div class="msg-actions">
+                    <button class="msg-action-btn" onclick="copyMessage(this)">复制</button>
+                    <button class="msg-action-btn" onclick="regenerate(this)">重新生成</button>
+                    <span class="msg-time">${timeStr}</span>
+                </div>
+            </div>
         `;
         chatContainer.appendChild(msgDiv);
         const contentDiv = msgDiv.querySelector('.msg-content');
@@ -697,8 +733,6 @@ async function sendMessage() {
         const decoder = new TextDecoder();
         let buffer = '';
         let fullReply = '';
-
-        startTypewriter(contentDiv);
 
         while (true) {
             const { done, value } = await reader.read();
@@ -717,32 +751,59 @@ async function sendMessage() {
                     const parsed = JSON.parse(payload);
                     if (parsed.token) {
                         fullReply += parsed.token;
-                        feedTypewriter(parsed.token);
+                        // 实时渲染 markdown
+                        contentDiv.innerHTML = renderMarkdown(fullReply);
+                        scrollToBottom();
                     }
                 } catch (_) {}
             }
         }
 
-        typewriterRunning = false;
-        await waitTypewriterDone();
         contentDiv.classList.remove('streaming');
+        // 最终渲染 + 代码复制按钮
+        contentDiv.innerHTML = renderMarkdown(fullReply);
+        addCodeCopyButtons(msgDiv.parentElement || msgDiv);
 
         // 回复完成 — 桌宠弹出一个随机 emoji，然后回到空闲
         const emojiKeys = ['happy', 'surprise', 'excited', 'cool'];
         showPetEmoji(emojiKeys[Math.floor(Math.random() * emojiKeys.length)]);
         setTimeout(() => setPetState('idle'), 800);
 
+        hideStopButton();
         await loadSessions();
 
     } catch (err) {
-        removeLoading();
-        setPetState('idle');
-        typewriterRunning = false;
-        typewriterQueue = '';
-        const streaming = document.getElementById('streamingMsg');
-        if (streaming) streaming.closest('.message').remove();
-        showError('连接中断，请检查网络 …');
+        if (err.name === 'AbortError') {
+            // 用户主动停止
+            const streaming = document.getElementById('streamingMsg');
+            if (streaming) {
+                streaming.classList.remove('streaming');
+                addCodeCopyButtons(streaming.closest('.message'));
+            }
+            showPetEmoji('confused');
+            setTimeout(() => setPetState('idle'), 800);
+        } else {
+            removeLoading();
+            setPetState('idle');
+            const streaming = document.getElementById('streamingMsg');
+            if (streaming) streaming.closest('.message').remove();
+            showError('连接中断，请检查网络 …');
+        }
+        hideStopButton();
     }
+}
+
+function stopGeneration() {
+    if (abortController) {
+        abortController.abort();
+        abortController = null;
+    }
+}
+
+function hideStopButton() {
+    btnStop.style.display = 'none';
+    btnSend.style.display = 'inline-block';
+    abortController = null;
 }
 
 // ================================================================
@@ -752,12 +813,99 @@ function addMessage(text, type) {
     const div = document.createElement('div');
     div.className = `message ${type}`;
     const svg = type === 'robot' ? ROBOT_SVG : USER_SVG;
+    const now = new Date();
+    const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+    const rendered = type === 'robot' ? renderMarkdown(text) : escapeHtml(text);
+
     div.innerHTML = `
         <div class="msg-avatar">${svg}</div>
-        <div class="msg-content">${escapeHtml(text)}</div>
+        <div class="msg-body">
+            <div class="msg-content">${rendered}</div>
+            <div class="msg-actions">
+                <button class="msg-action-btn" onclick="copyMessage(this)">复制</button>
+                ${type === 'robot' ? '<button class="msg-action-btn" onclick="regenerate(this)">重新生成</button>' : ''}
+                <span class="msg-time">${timeStr}</span>
+            </div>
+        </div>
     `;
+
+    // 为代码块添加复制按钮
+    if (type === 'robot') {
+        addCodeCopyButtons(div);
+    }
+
     chatContainer.appendChild(div);
     scrollToBottom();
+}
+
+function renderMarkdown(text) {
+    try {
+        return marked.parse(text);
+    } catch (e) {
+        return escapeHtml(text);
+    }
+}
+
+function addCodeCopyButtons(container) {
+    const blocks = container.querySelectorAll('pre code');
+    blocks.forEach(function(block) {
+        const pre = block.parentElement;
+        if (pre.querySelector('.code-copy-btn')) return;
+        const btn = document.createElement('button');
+        btn.className = 'code-copy-btn';
+        btn.textContent = '复制';
+        btn.addEventListener('click', function() {
+            navigator.clipboard.writeText(block.textContent).then(function() {
+                btn.textContent = '已复制';
+                btn.classList.add('copied');
+                setTimeout(function() {
+                    btn.textContent = '复制';
+                    btn.classList.remove('copied');
+                }, 1500);
+            });
+        });
+        pre.style.position = 'relative';
+        pre.appendChild(btn);
+    });
+}
+
+function copyMessage(btn) {
+    const msgBody = btn.closest('.msg-body');
+    const content = msgBody.querySelector('.msg-content');
+    navigator.clipboard.writeText(content.textContent).then(function() {
+        btn.textContent = '已复制';
+        btn.classList.add('copied');
+        setTimeout(function() {
+            btn.textContent = '复制';
+            btn.classList.remove('copied');
+        }, 1500);
+    });
+}
+
+function regenerate(btn) {
+    const msgDiv = btn.closest('.message');
+    // 找到这条消息之前的最近一条用户消息
+    const allMessages = chatContainer.querySelectorAll('.message');
+    let lastUserText = '';
+    for (const msg of allMessages) {
+        if (msg.classList.contains('user')) {
+            lastUserText = msg.querySelector('.msg-content').textContent;
+        }
+        if (msg === msgDiv) break;
+    }
+    // 删除当前机器人消息及之后的所有消息
+    let next = msgDiv;
+    while (next) {
+        const toRemove = next;
+        next = next.nextElementSibling;
+        toRemove.remove();
+    }
+    // 重新发送
+    if (lastUserText) {
+        messageInput.value = lastUserText;
+        sendMessage();
+    }
 }
 
 // ================================================================
