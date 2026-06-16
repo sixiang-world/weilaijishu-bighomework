@@ -139,84 +139,87 @@ function createPixelEmoji(color, type) {
 
 // 圆脸机器人 SVG — 空闲态
 function getRobotSVG(state, pupilOffset) {
-    const bodyColor = '#D62828';
-    const faceColor = '#F5F0E6';
+    const headColor = '#1A1A1A';
+    const eyeWhite = '#F5F0E6';
     const k = '#1A1A1A';
-    const accent = '#6366F1';
+    const accent = '#D62828';
     const px = (pupilOffset && pupilOffset.x) || 0;
     const py = (pupilOffset && pupilOffset.y) || 0;
 
-    let eyes, mouth, extras;
+    let leftEye, rightEye, mouth, extras;
 
     switch (state) {
         case 'thinking':
-            // 思考：一只眼微闭，嘴微张
-            eyes = `
-                <circle cx="46" cy="52" r="6" fill="${k}"/>
-                <circle cx="47" cy="51" r="2.5" fill="${faceColor}" id="pupil-l" transform="translate(${px},${py})"/>
-                <circle cx="74" cy="52" r="5" fill="${k}"/>
-                <line x1="69" y1="50" x2="79" y2="50" stroke="${faceColor}" stroke-width="2"/>
-                <circle cx="75" cy="51" r="2" fill="${faceColor}" id="pupil-r" transform="translate(${px},${py})"/>
+            // 思考：左眼正常，右眼半闭，嘴微张
+            leftEye = `
+                <ellipse cx="42" cy="48" rx="10" ry="11" fill="${eyeWhite}"/>
+                <circle cx="${43 + px}" cy="${48 + py}" r="5" fill="${k}"/>
+                <circle cx="${41 + px}" cy="${46 + py}" r="1.5" fill="white"/>
             `;
-            mouth = `<ellipse cx="60" cy="70" rx="6" ry="4" fill="${k}"/>`;
+            rightEye = `
+                <ellipse cx="78" cy="48" rx="10" ry="6" fill="${eyeWhite}"/>
+                <ellipse cx="78" cy="46" rx="10" ry="4" fill="${headColor}"/>
+                <circle cx="${79 + px}" cy="${48 + py}" r="3" fill="${k}"/>
+            `;
+            mouth = `<ellipse cx="60" cy="72" rx="5" ry="3.5" fill="${k}"/>`;
             extras = `
-                <circle cx="96" cy="38" r="5" fill="${accent}" opacity="0.4"/>
-                <circle cx="104" cy="30" r="3.5" fill="${accent}" opacity="0.3"/>
-                <circle cx="108" cy="22" r="2" fill="${accent}" opacity="0.2"/>
+                <circle cx="98" cy="30" r="5" fill="${accent}" opacity="0.45"/>
+                <circle cx="106" cy="22" r="3.5" fill="${accent}" opacity="0.3"/>
+                <circle cx="110" cy="14" r="2" fill="${accent}" opacity="0.15"/>
             `;
             break;
         case 'replying':
-            // 回复：开心大眼，微笑
-            eyes = `
-                <circle cx="46" cy="50" r="7" fill="${k}"/>
-                <circle cx="47" cy="49" r="3" fill="${faceColor}" id="pupil-l" transform="translate(${px},${py})"/>
-                <circle cx="74" cy="50" r="7" fill="${k}"/>
-                <circle cx="75" cy="49" r="3" fill="${faceColor}" id="pupil-r" transform="translate(${px},${py})"/>
+            // 回复：开心大眼，弯嘴笑
+            leftEye = `
+                <ellipse cx="42" cy="48" rx="11" ry="12" fill="${eyeWhite}"/>
+                <circle cx="${43 + px}" cy="${47 + py}" r="5.5" fill="${k}"/>
+                <circle cx="${41 + px}" cy="${45 + py}" r="1.8" fill="white"/>
             `;
-            mouth = `<path d="M 48 68 Q 60 80 72 68" stroke="${k}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+            rightEye = `
+                <ellipse cx="78" cy="48" rx="11" ry="12" fill="${eyeWhite}"/>
+                <circle cx="${79 + px}" cy="${47 + py}" r="5.5" fill="${k}"/>
+                <circle cx="${77 + px}" cy="${45 + py}" r="1.8" fill="white"/>
+            `;
+            mouth = `<path d="M 48 70 Q 60 82 72 70" stroke="${k}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
             extras = '';
             break;
         case 'idle':
         default:
-            // 空闲：圆眼，小嘴
-            eyes = `
-                <circle cx="46" cy="52" r="6" fill="${k}"/>
-                <circle cx="47" cy="51" r="2.5" fill="${faceColor}" id="pupil-l" transform="translate(${px},${py})"/>
-                <circle cx="74" cy="52" r="6" fill="${k}"/>
-                <circle cx="75" cy="51" r="2.5" fill="${faceColor}" id="pupil-r" transform="translate(${px},${py})"/>
+            // 空闲：标准圆眼，小嘴
+            leftEye = `
+                <ellipse cx="42" cy="48" rx="10" ry="11" fill="${eyeWhite}"/>
+                <circle cx="${43 + px}" cy="${48 + py}" r="5" fill="${k}"/>
+                <circle cx="${41 + px}" cy="${46 + py}" r="1.5" fill="white"/>
             `;
-            mouth = `<rect x="52" y="68" width="16" height="3" rx="1.5" fill="${k}"/>`;
+            rightEye = `
+                <ellipse cx="78" cy="48" rx="10" ry="11" fill="${eyeWhite}"/>
+                <circle cx="${79 + px}" cy="${48 + py}" r="5" fill="${k}"/>
+                <circle cx="${77 + px}" cy="${46 + py}" r="1.5" fill="white"/>
+            `;
+            mouth = `<rect x="53" y="70" width="14" height="2.5" rx="1.25" fill="${k}"/>`;
             extras = '';
             break;
     }
 
-    return `<svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- 天线 -->
-        <line x1="60" y1="6" x2="60" y2="18" stroke="${k}" stroke-width="2.5" stroke-linecap="round"/>
-        <circle cx="60" cy="4" r="4" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
+    return `<svg viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- 纯黑圆球脑袋 -->
+        <circle cx="60" cy="48" r="40" fill="${headColor}"/>
 
-        <!-- 头部 — NOMI 圆球 -->
-        <circle cx="60" cy="54" r="38" fill="${faceColor}" stroke="${k}" stroke-width="3"/>
-
-        <!-- 耳朵/底座小突起 -->
-        <ellipse cx="18" cy="58" rx="8" ry="12" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
-        <ellipse cx="102" cy="58" rx="8" ry="12" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
-
-        <!-- 眼睛 -->
-        ${eyes}
+        <!-- 眼白 -->
+        ${leftEye}
+        ${rightEye}
 
         <!-- 嘴 -->
         ${mouth}
 
-        <!-- 脸颊红晕 -->
-        <circle cx="34" cy="64" r="6" fill="${bodyColor}" opacity="0.18"/>
-        <circle cx="86" cy="64" r="6" fill="${bodyColor}" opacity="0.18"/>
+        <!-- 脸颊微光 -->
+        <circle cx="30" cy="60" r="5" fill="${accent}" opacity="0.08"/>
+        <circle cx="90" cy="60" r="5" fill="${accent}" opacity="0.08"/>
 
-        <!-- 底座 -->
-        <ellipse cx="60" cy="100" rx="28" ry="8" fill="${bodyColor}" stroke="${k}" stroke-width="2.5"/>
-        <rect x="32" y="90" width="56" height="12" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="2.5"/>
+        <!-- 小底座 -->
+        <rect x="42" y="86" width="36" height="8" rx="4" fill="${k}"/>
+        <ellipse cx="60" cy="94" rx="22" ry="4" fill="${k}" opacity="0.5"/>
 
-        <!-- 额外装饰 -->
         ${extras}
     </svg>`;
 }

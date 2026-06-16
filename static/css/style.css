@@ -832,8 +832,8 @@ body.sidebar-is-collapsed .main-layout {
 
 /* 桌宠机器人容器 */
 .pet-robot {
-    width: 160px;
-    height: 160px;
+    width: 180px;
+    height: 150px;
     cursor: pointer;
     transition: transform 0.3s ease;
     position: relative;
