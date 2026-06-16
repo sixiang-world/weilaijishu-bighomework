@@ -1007,6 +1007,11 @@ body.sidebar-is-collapsed .main-layout {
     letter-spacing: 0.06em;
     color: var(--black);
 }
+.publish-card-hint {
+    font-size: 11px;
+    color: var(--gray);
+    margin-top: 2px;
+}
 .publish-card-url {
     font-size: 11px;
     color: var(--gray);

@@ -928,7 +928,7 @@ function regenerate(btn) {
 // ================================================================
 
 async function publishContent(content, type) {
-    // 如果是网页类型，验证并修复 HTML
+    // 如果是网页类型，前端先修复
     if (type === 'page') {
         content = repairHTML(content);
     }
@@ -1035,23 +1035,42 @@ async function detectAndPublish(msgContentDiv) {
                     msgContentDiv.innerHTML = '';
                 }
 
-                // 显示加载状态
+                // 阶段 1：正在发布
                 const loadingEl = document.createElement('div');
                 loadingEl.className = 'publish-card loading';
-                loadingEl.innerHTML = '<div class="publish-card-icon">⏳</div><div class="publish-card-info"><div class="publish-card-label">正在发布...</div></div>';
+                loadingEl.innerHTML = '<div class="publish-card-icon">📦</div><div class="publish-card-info"><div class="publish-card-label">正在发布...</div><div class="publish-card-hint">内容生成完毕，准备上传</div></div>';
                 msgContentDiv.appendChild(loadingEl);
+                setPetState('thinking');
+                showPetEmoji('thinking');
+
+                // 阶段 2：AI 二次验证（page 类型 1.5 秒后触发）
+                var repairTimer = null;
+                if (type === 'page') {
+                    repairTimer = setTimeout(function() {
+                        loadingEl.innerHTML = '<div class="publish-card-icon">🔍</div><div class="publish-card-info"><div class="publish-card-label">AI 正在二次验证...</div><div class="publish-card-hint">检查并修复 HTML 结构</div></div>';
+                        setPetState('thinking');
+                        showPetEmoji('confused');
+                    }, 1500);
+                }
 
                 // 发布
                 const url = await publishContent(rawContent, type);
+                if (repairTimer) clearTimeout(repairTimer);
                 loadingEl.remove();
 
                 if (url) {
                     msgContentDiv.insertAdjacentHTML('beforeend', renderPublishCard(url, type));
                     addCodeCopyButtons(msgContentDiv.closest('.message') || msgContentDiv);
+                    // 发布成功
+                    setPetState('replying');
+                    showPetEmoji('excited');
+                    setTimeout(function() { setPetState('idle'); }, 1200);
                 } else {
                     msgContentDiv.insertAdjacentHTML('beforeend',
                         '<div class="publish-card error"><div class="publish-card-icon">❌</div><div class="publish-card-info"><div class="publish-card-label">发布失败</div></div></div>'
                     );
+                    showPetEmoji('confused');
+                    setTimeout(function() { setPetState('idle'); }, 1200);
                 }
                 return;
             }
@@ -1067,14 +1086,26 @@ async function publishMessage(btn, type) {
 
     btn.textContent = '发布中...';
     btn.disabled = true;
+    setPetState('thinking');
+    showPetEmoji('thinking');
 
-    const url = await publishContent(text, type);
+    const url = await publishContent(text, type, function(stage) {
+        if (stage === 'repairing') {
+            btn.textContent = 'AI验证中...';
+            showPetEmoji('confused');
+        }
+    });
+
     if (url) {
         contentDiv.insertAdjacentHTML('beforeend', renderPublishCard(url, type));
         btn.textContent = '已发布';
+        setPetState('replying');
+        showPetEmoji('excited');
+        setTimeout(function() { setPetState('idle'); }, 1200);
     } else {
         btn.textContent = '失败';
-        setTimeout(function() { btn.textContent = '发布'; btn.disabled = false; }, 2000);
+        showPetEmoji('confused');
+        setTimeout(function() { btn.textContent = '发布'; btn.disabled = false; setPetState('idle'); }, 2000);
     }
 }
 
