@@ -190,7 +190,7 @@ function getRobotSVG(state, pupilOffset) {
             break;
     }
 
-    return \`<svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+    return `<svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
         <!-- 天线 -->
         <line x1="60" y1="6" x2="60" y2="18" stroke="${k}" stroke-width="2.5" stroke-linecap="round"/>
         <circle cx="60" cy="4" r="4" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
@@ -218,7 +218,7 @@ function getRobotSVG(state, pupilOffset) {
 
         <!-- 额外装饰 -->
         ${extras}
-    </svg>\`;
+    </svg>`;
 }
 
 // 桌宠状态管理
