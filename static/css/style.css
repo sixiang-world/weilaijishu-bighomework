@@ -204,24 +204,29 @@ body {
 
 .session-delete {
     flex-shrink: 0;
-    width: 24px;
-    height: 24px;
-    background: transparent;
-    border: none;
-    color: rgba(245,240,230,0.2);
-    font-size: 12px;
+    width: 26px;
+    height: 26px;
+    background: rgba(214,40,40,0.10);
+    border: 1px solid rgba(214,40,40,0.20);
+    color: rgba(245,240,230,0.45);
+    font-size: 13px;
     cursor: pointer;
-    display: none;
+    display: grid;
     place-items: center;
     transition: all 0.2s ease;
     border-radius: 0;
+    opacity: 0.6;
 }
 .session-item:hover .session-delete {
-    display: grid;
+    opacity: 1;
+    background: rgba(214,40,40,0.18);
+    border-color: rgba(214,40,40,0.35);
 }
 .session-delete:hover {
-    color: var(--red);
-    background: rgba(214,40,40,0.15);
+    color: var(--cream);
+    background: var(--red);
+    border-color: var(--red);
+    opacity: 1;
 }
 
 .sidebar-footer {
