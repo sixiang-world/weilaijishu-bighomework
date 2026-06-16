@@ -222,8 +222,8 @@ function getRobotSVG(state) {
             `;
             mouth = `<rect x="48" y="64" width="18" height="4" fill="${k}"/>`;
             arms = `
-                <rect x="20" y="64" width="8" height="30" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
-                <rect x="84" y="64" width="8" height="30" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
+                <rect x="20" y="78" width="8" height="30" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
+                <rect x="84" y="78" width="8" height="30" rx="4" fill="${bodyColor}" stroke="${k}" stroke-width="2"/>
             `;
             extras = '';
             break;
