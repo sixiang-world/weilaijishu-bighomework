@@ -756,13 +756,12 @@ async function sendMessage() {
         msgDiv.innerHTML = `
             <div class="msg-avatar">${ROBOT_SVG}</div>
             <div class="msg-body">
-                <div class="msg-content streaming" id="streamingMsg">
-                    <div class="msg-actions">
-                        <button class="msg-action-btn" onclick="copyMessage(this)">复制</button>
-                        <button class="msg-action-btn" onclick="regenerate(this)">重新生成</button>
-                        <div class="msg-action-dropdown"><button class="msg-action-btn">发布 ▾</button><div class="msg-action-menu"><button data-publish="doc">文档</button><button data-publish="ppt">幻灯片</button><button data-publish="page">网页</button></div></div>
-                        <span class="msg-time">${timeStr}</span>
-                    </div>
+                <div class="msg-content streaming" id="streamingMsg"></div>
+                <div class="msg-actions">
+                    <button class="msg-action-btn" onclick="copyMessage(this)">复制</button>
+                    <button class="msg-action-btn" onclick="regenerate(this)">重新生成</button>
+                    <div class="msg-action-dropdown"><button class="msg-action-btn">发布 ▾</button><div class="msg-action-menu"><button data-publish="doc">文档</button><button data-publish="ppt">幻灯片</button><button data-publish="page">网页</button></div></div>
+                    <span class="msg-time">${timeStr}</span>
                 </div>
             </div>
         `;
@@ -802,7 +801,7 @@ async function sendMessage() {
         contentDiv.classList.remove('streaming');
         // 最终渲染 + 代码复制按钮
         contentDiv.innerHTML = renderMarkdown(fullReply);
-        addCodeCopyButtons(msgDiv.parentElement || msgDiv);
+        addCodeCopyButtons(msgDiv);
         detectAndPublish(contentDiv);
 
         // 回复完成 — 桌宠弹出一个随机 emoji，然后回到空闲
@@ -917,7 +916,10 @@ function addCodeCopyButtons(container) {
 function copyMessage(btn) {
     const msgBody = btn.closest('.msg-body');
     const content = msgBody.querySelector('.msg-content');
-    navigator.clipboard.writeText(content.textContent).then(function() {
+    // 克隆内容，去掉操作栏和发布卡片，只复制正文
+    const clone = content.cloneNode(true);
+    clone.querySelectorAll('.msg-actions, .publish-card').forEach(function(el) { el.remove(); });
+    navigator.clipboard.writeText(clone.textContent.trim()).then(function() {
         btn.textContent = '已复制';
         btn.classList.add('copied');
         setTimeout(function() {

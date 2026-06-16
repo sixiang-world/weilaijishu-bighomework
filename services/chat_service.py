@@ -110,7 +110,7 @@ class ChatService:
                 messages=messages,
                 stream=False,
             )
-            reply = response.choices[0].message.content
+            reply = response.choices[0].message.content if response.choices else '滴~信号似乎飘走了……没有收到回复。'
         except Exception as e:
             reply = f"滴~信号中断了......数据碎片:{str(e)}"
 
@@ -150,7 +150,10 @@ class ChatService:
                 stream=True,
             )
             for chunk in stream:
-                token = chunk.choices[0].delta.content
+                if not chunk.choices:
+                    continue
+                delta = chunk.choices[0].delta
+                token = delta.content if delta else None
                 if token:
                     full_reply += token
                     yield token

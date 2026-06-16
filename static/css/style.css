@@ -785,17 +785,18 @@ body.sidebar-is-collapsed .main-layout {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 0 0;
-    margin-top: 8px;
-    border-top: 1px solid rgba(26,26,26,0.06);
+    padding: 6px 18px 8px;
     opacity: 0;
     transition: opacity 0.25s ease;
 }
-.msg-content:hover .msg-actions {
+.message:hover .msg-actions {
     opacity: 1;
 }
+.message.robot .msg-actions {
+    border-top: 1px solid rgba(26,26,26,0.06);
+}
 .message.user .msg-actions {
-    border-top-color: rgba(99,102,241,0.1);
+    border-top: 1px solid rgba(99,102,241,0.1);
     justify-content: flex-end;
 }
 .msg-action-btn {
