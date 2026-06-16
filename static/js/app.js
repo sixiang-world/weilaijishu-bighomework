@@ -138,11 +138,13 @@ function createPixelEmoji(color, type) {
 }
 
 // 圆脸机器人 SVG — 空闲态
-function getRobotSVG(state) {
+function getRobotSVG(state, pupilOffset) {
     const bodyColor = '#D62828';
     const faceColor = '#F5F0E6';
     const k = '#1A1A1A';
     const accent = '#6366F1';
+    const px = (pupilOffset && pupilOffset.x) || 0;
+    const py = (pupilOffset && pupilOffset.y) || 0;
 
     let eyes, mouth, arms, extras;
 
@@ -151,8 +153,10 @@ function getRobotSVG(state) {
             // 思考：一只眼微闭，手托下巴
             eyes = `
                 <rect x="44" y="52" width="10" height="10" fill="${k}"/>
+                <rect x="46" y="54" width="5" height="5" fill="${faceColor}" id="pupil-l" transform="translate(${px},${py})"/>
                 <rect x="66" y="52" width="10" height="8" fill="${k}"/>
                 <rect x="66" y="56" width="10" height="4" fill="${faceColor}"/>
+                <rect x="68" y="53" width="5" height="4" fill="${faceColor}" id="pupil-r" transform="translate(${px},${py})"/>
             `;
             mouth = `<rect x="50" y="72" width="14" height="4" fill="${k}" transform="rotate(-5 57 74)"/>`;
             arms = `
@@ -171,7 +175,9 @@ function getRobotSVG(state) {
             // 回复：开心嘴，双手张开
             eyes = `
                 <rect x="44" y="52" width="10" height="10" fill="${k}"/>
+                <rect x="46" y="54" width="5" height="5" fill="${faceColor}" id="pupil-l" transform="translate(${px},${py})"/>
                 <rect x="66" y="52" width="10" height="10" fill="${k}"/>
+                <rect x="68" y="54" width="5" height="5" fill="${faceColor}" id="pupil-r" transform="translate(${px},${py})"/>
             `;
             mouth = `
                 <rect x="46" y="72" width="22" height="6" fill="${k}"/>
@@ -190,7 +196,9 @@ function getRobotSVG(state) {
             // 空闲：正常眼，微笑，手臂自然下垂
             eyes = `
                 <rect x="44" y="52" width="10" height="10" fill="${k}"/>
+                <rect x="46" y="54" width="5" height="5" fill="${faceColor}" id="pupil-l" transform="translate(${px},${py})"/>
                 <rect x="66" y="52" width="10" height="10" fill="${k}"/>
+                <rect x="68" y="54" width="5" height="5" fill="${faceColor}" id="pupil-r" transform="translate(${px},${py})"/>
             `;
             mouth = `<rect x="48" y="72" width="18" height="4" fill="${k}"/>`;
             arms = `
@@ -243,7 +251,7 @@ let petEmojiTimeout = null;
 function setPetState(state) {
     petState = state;
     petRobot.className = 'pet-robot ' + state;
-    petRobot.innerHTML = getRobotSVG(state);
+    petRobot.innerHTML = getRobotSVG(state, lastPupilOffset);
 
     if (state === 'idle') {
         petStatus.textContent = '待命中';
@@ -288,6 +296,37 @@ petRobot.addEventListener('click', function () {
         setTimeout(() => setPetState('idle'), 1500);
     }
 });
+
+// 眼睛追踪鼠标
+let lastPupilOffset = { x: 0, y: 0 };
+
+function updatePetEyes(e) {
+    const rect = petRobot.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height * 0.38; // 眼睛大约在头部 38% 位置
+
+    const dx = e.clientX - cx;
+    const dy = e.clientY - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const maxOffset = 4;
+
+    if (dist < 10) {
+        lastPupilOffset = { x: 0, y: 0 };
+    } else {
+        lastPupilOffset = {
+            x: Math.round((dx / dist) * maxOffset),
+            y: Math.round((dy / dist) * maxOffset)
+        };
+    }
+
+    // 只更新瞳孔 transform，不重绘整个 SVG
+    const pl = document.getElementById('pupil-l');
+    const pr = document.getElementById('pupil-r');
+    if (pl) pl.setAttribute('transform', `translate(${lastPupilOffset.x},${lastPupilOffset.y})`);
+    if (pr) pr.setAttribute('transform', `translate(${lastPupilOffset.x},${lastPupilOffset.y})`);
+}
+
+document.addEventListener('mousemove', updatePetEyes);
 
 // 初始化桌宠
 setPetState('idle');
