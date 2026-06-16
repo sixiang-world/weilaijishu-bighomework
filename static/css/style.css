@@ -757,6 +757,12 @@ body.sidebar-is-collapsed .main-layout {
     background: var(--red);
 }
 
+.btn-send:disabled {
+    background: var(--red);
+    color: var(--cream);
+    cursor: not-allowed;
+}
+
 /* -------------------- 消息操作栏 -------------------- */
 .msg-actions {
     display: flex;

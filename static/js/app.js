@@ -747,6 +747,7 @@ async function sendMessage() {
                 streaming.classList.remove('streaming');
                 addCodeCopyButtons(streaming.closest('.message'));
             }
+            removeLoading();
             showPetEmoji('confused');
             setTimeout(() => setPetState('idle'), 800);
         } else {
@@ -811,7 +812,11 @@ function addMessage(text, type) {
 
 function renderMarkdown(text) {
     try {
-        return marked.parse(text);
+        var raw = marked.parse(text);
+        // Strip <style>/<script> from AI-generated HTML to prevent global CSS pollution
+        var doc = new DOMParser().parseFromString(raw, 'text/html');
+        doc.querySelectorAll('style, script').forEach(function(el) { el.remove(); });
+        return doc.body.innerHTML;
     } catch (e) {
         return escapeHtml(text);
     }
