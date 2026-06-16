@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>千禧梦 · 构成主义聊天</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <!-- 对角线装饰背景 -->
+    <div class="bg-stripes"></div>
+
+    <!-- 主面板 -->
+    <div class="panel">
+
+        <!-- 顶部栏 -->
+        <header class="topbar">
+            <div class="topbar-inner">
+                <div class="brand">
+                    <span class="brand-icon">
+                        <span class="brand-icon-box">🤖</span>
+                    </span>
+                    <div class="brand-text">
+                        <h1>千禧梦</h1>
+                        <p>M I L L E N N I U M · D R E A M</p>
+                    </div>
+                </div>
+                <div class="topbar-accent"></div>
+            </div>
+            <div class="topbar-stripe"></div>
+        </header>
+
+        <!-- 对话区 -->
+        <div class="chat-area" id="chatContainer">
+            <div class="welcome" id="welcomeMessage">
+                <div class="welcome-icon">
+                    <span>🤖</span>
+                    <span class="welcome-glitch">▮▯▮</span>
+                </div>
+                <h2>你好，旅行者。</h2>
+                <p>我是千禧梦，一个从像素梦境中苏醒的机器人。<br>在这个数码次元里，我们可以聊聊任何事——<br>关于星空屏保、拨号音、和那些被遗忘的比特之光。</p>
+                <div class="welcome-line"></div>
+            </div>
+        </div>
+
+        <!-- 输入区 -->
+        <div class="input-zone">
+            <div class="input-zone-inner">
+                <div class="input-row">
+                    <input
+                        type="text"
+                        class="input-field"
+                        id="messageInput"
+                        placeholder="输入消息……"
+                        autocomplete="off"
+                    >
+                    <button class="btn btn-send" id="btnSend" onclick="sendMessage()">
+                        发送 →
+                    </button>
+                </div>
+                <div class="input-actions">
+                    <button class="btn btn-clear" onclick="clearChat()">
+                        清空记忆体
+                    </button>
+                    <span class="input-hint">Enter 发送</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 装饰角标 -->
+        <div class="corner corner-tl"></div>
+        <div class="corner corner-br"></div>
+
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

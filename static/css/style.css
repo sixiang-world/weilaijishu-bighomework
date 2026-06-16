@@ -1,0 +1,556 @@
+/* ============================================================
+   千禧梦 · 构成主义聊天 — 样式表
+   色板：红 #D62828 / 黑 #1A1A1A / 奶油 #F5F0E6 / 靛蓝 #6366F1
+   ============================================================ */
+
+/* -------------------- 基础重置 -------------------- */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --con-red:       #D62828;
+    --con-red-light: #E84040;
+    --con-black:     #1A1A1A;
+    --con-cream:     #F5F0E6;
+    --con-indigo:    #6366F1;
+    --con-white:     #FFFFFF;
+    --con-gray:      #555555;
+    --con-light-gray:#9CA3AF;
+}
+
+body {
+    font-family: 'Arial Black', 'Impact', 'Helvetica Neue', Arial, sans-serif;
+    background: var(--con-cream);
+    color: var(--con-black);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 24px 16px 48px;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* -------------------- 对角线条纹背景 -------------------- */
+.bg-stripes {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 48px,
+        rgba(214,40,40,0.038) 48px,
+        rgba(214,40,40,0.038) 50px
+    );
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* -------------------- 主面板 -------------------- */
+.panel {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 640px;
+    border: 4px solid var(--con-black);
+    background: var(--con-cream);
+    display: flex;
+    flex-direction: column;
+    min-height: 85vh;
+    max-height: 95vh;
+}
+
+/* 装饰角标 */
+.corner {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    z-index: 10;
+    pointer-events: none;
+}
+.corner-tl {
+    top: -10px; left: -10px;
+    background: var(--con-red);
+}
+.corner-br {
+    bottom: -10px; right: -10px;
+    background: var(--con-black);
+}
+
+/* -------------------- 顶部栏 -------------------- */
+.topbar {
+    background: var(--con-black);
+    position: relative;
+}
+.topbar-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+}
+.topbar-stripe {
+    height: 4px;
+    background: var(--con-red);
+    transform: skewX(-30deg) translateX(-12px);
+    width: calc(100% + 24px);
+}
+
+/* 品牌 */
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: transform 0.3s ease;
+}
+.brand:hover {
+    transform: skewX(-5deg) translateX(6px);
+}
+
+.brand-icon-box {
+    display: inline-grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    background: var(--con-red);
+    font-size: 28px;
+    transition: background 0.3s ease;
+}
+.brand:hover .brand-icon-box {
+    background: var(--con-indigo);
+}
+
+.brand-text h1 {
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--con-cream);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    line-height: 1.1;
+}
+.brand-text p {
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(245,240,230,0.45);
+    letter-spacing: 0.18em;
+    margin-top: 2px;
+}
+
+/* 顶部红色强调块 */
+.topbar-accent {
+    width: 64px;
+    height: 64px;
+    border: 3px solid var(--con-red);
+    opacity: 0.25;
+    transition: all 0.4s ease;
+}
+.topbar:hover .topbar-accent {
+    opacity: 0.5;
+    transform: rotate(15deg) scale(1.1);
+}
+
+/* -------------------- 对话区 -------------------- */
+.chat-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    background: var(--con-cream);
+    position: relative;
+}
+
+/* 对话区微妙的网格纹理 */
+.chat-area::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image:
+        linear-gradient(rgba(26,26,26,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(26,26,26,0.025) 1px, transparent 1px);
+    background-size: 16px 16px;
+    pointer-events: none;
+}
+
+/* 滚动条 */
+.chat-area::-webkit-scrollbar {
+    width: 10px;
+}
+.chat-area::-webkit-scrollbar-track {
+    background: var(--con-black);
+}
+.chat-area::-webkit-scrollbar-thumb {
+    background: var(--con-red);
+    border: 2px solid var(--con-black);
+}
+.chat-area::-webkit-scrollbar-thumb:hover {
+    background: var(--con-red-light);
+}
+
+/* -------------------- 欢迎消息 -------------------- */
+.welcome {
+    text-align: center;
+    padding: 48px 16px 32px;
+    animation: fadeSkew 0.6s ease;
+}
+.welcome-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+.welcome-icon > span:first-child {
+    font-size: 56px;
+    transition: transform 0.3s ease;
+}
+.welcome-icon > span:first-child:hover {
+    transform: skewX(-8deg) scale(1.1);
+}
+.welcome-glitch {
+    font-family: monospace;
+    font-size: 18px;
+    color: var(--con-red);
+    font-weight: 900;
+    animation: glitchPulse 2s infinite;
+}
+.welcome h2 {
+    font-size: 22px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 12px;
+    color: var(--con-black);
+}
+.welcome p {
+    font-size: 14px;
+    color: var(--con-gray);
+    line-height: 1.8;
+    max-width: 420px;
+    margin: 0 auto 20px;
+}
+.welcome-line {
+    width: 80px;
+    height: 4px;
+    background: var(--con-red);
+    margin: 0 auto;
+    transform: skewX(-30deg);
+}
+
+/* -------------------- 消息气泡 -------------------- */
+.message {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+    animation: fadeSkew 0.35s ease;
+    align-items: flex-start;
+}
+
+/* 机器人消息（左对齐） */
+.message.robot {
+    flex-direction: row;
+}
+/* 用户消息（右对齐） */
+.message.user {
+    flex-direction: row-reverse;
+}
+
+/* 头像 */
+.msg-avatar {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    font-size: 22px;
+    font-weight: 900;
+    transition: transform 0.3s ease;
+}
+.message.robot .msg-avatar {
+    background: var(--con-red);
+    color: var(--con-white);
+}
+.message.user .msg-avatar {
+    background: var(--con-black);
+    color: var(--con-cream);
+}
+.msg-avatar:hover {
+    transform: skewX(-6deg) scale(1.1);
+}
+
+/* 气泡内容 */
+.msg-content {
+    max-width: 72%;
+    padding: 14px 18px;
+    font-size: 15px;
+    line-height: 1.7;
+    word-break: break-word;
+    position: relative;
+}
+
+/* 机器人气泡：白底 + 左侧红色粗条 */
+.message.robot .msg-content {
+    background: var(--con-white);
+    color: var(--con-black);
+    border-left: 5px solid var(--con-red);
+    margin-left: 12px;
+}
+
+/* 用户气泡：黑底白字 */
+.message.user .msg-content {
+    background: var(--con-black);
+    color: var(--con-cream);
+    margin-right: 12px;
+}
+
+/* 气泡尖角 */
+.message.robot .msg-content::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: 14px;
+    width: 0; height: 0;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-right: 6px solid var(--con-white);
+}
+.message.user .msg-content::after {
+    content: '';
+    position: absolute;
+    right: -6px;
+    top: 14px;
+    width: 0; height: 0;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-left: 6px solid var(--con-black);
+}
+
+/* -------------------- 加载动画 -------------------- */
+.loading-msg {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 20px;
+    animation: fadeSkew 0.25s ease;
+}
+.loading-avatar {
+    width: 44px;
+    height: 44px;
+    background: var(--con-red);
+    display: grid;
+    place-items: center;
+    font-size: 22px;
+    flex-shrink: 0;
+}
+.loading-bars {
+    display: flex;
+    gap: 6px;
+    margin-left: 12px;
+    padding: 14px 18px;
+    background: var(--con-white);
+    border-left: 5px solid var(--con-red);
+}
+.loading-bar {
+    width: 8px;
+    height: 28px;
+    background: var(--con-red);
+    animation: barBounce 1.2s infinite ease-in-out;
+}
+.loading-bar:nth-child(1) { animation-delay: 0s; }
+.loading-bar:nth-child(2) { animation-delay: 0.15s; }
+.loading-bar:nth-child(3) { animation-delay: 0.30s; }
+.loading-bar:nth-child(4) { animation-delay: 0.45s; }
+
+/* -------------------- 错误提示 -------------------- */
+.error-toast {
+    background: var(--con-red);
+    color: var(--con-cream);
+    padding: 14px 18px;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    animation: shakeX 0.5s ease;
+    border: 2px solid var(--con-black);
+}
+
+/* -------------------- 输入区 -------------------- */
+.input-zone {
+    background: var(--con-black);
+    padding: 0;
+    position: relative;
+}
+.input-zone-inner {
+    padding: 16px 24px 20px;
+}
+
+.input-row {
+    display: flex;
+    gap: 0;
+}
+
+/* 输入框 */
+.input-field {
+    flex: 1;
+    padding: 14px 18px;
+    font-family: 'Arial Black', 'Impact', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    border: 3px solid var(--con-red);
+    background: var(--con-cream);
+    color: var(--con-black);
+    outline: none;
+    transition: all 0.3s ease;
+}
+.input-field:focus {
+    border-color: var(--con-indigo);
+    background: var(--con-white);
+}
+.input-field::placeholder {
+    color: var(--con-light-gray);
+    font-weight: 400;
+    font-style: italic;
+}
+
+/* 发送按钮 */
+.btn-send {
+    padding: 14px 28px;
+    font-family: 'Arial Black', 'Impact', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 16px;
+    font-weight: 900;
+    background: var(--con-red);
+    color: var(--con-cream);
+    border: none;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+}
+.btn-send:hover {
+    background: var(--con-indigo);
+    transform: skewX(-5deg) translateX(4px);
+}
+.btn-send:active {
+    transform: skewX(-5deg) translateX(6px) scale(0.97);
+}
+
+/* 底部操作行 */
+.input-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+}
+
+/* 清空按钮 */
+.btn-clear {
+    padding: 0;
+    background: none;
+    border: none;
+    font-family: 'Arial Black', 'Impact', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(245,240,230,0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+.btn-clear:hover {
+    color: var(--con-red);
+    transform: skewX(-5deg);
+}
+
+/* 提示 */
+.input-hint {
+    font-size: 10px;
+    color: rgba(245,240,230,0.25);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+/* -------------------- 动画 -------------------- */
+@keyframes fadeSkew {
+    from {
+        opacity: 0;
+        transform: translateY(12px) skewX(-2deg);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) skewX(0);
+    }
+}
+
+@keyframes barBounce {
+    0%, 60%, 100% {
+        transform: scaleY(0.4);
+        opacity: 0.5;
+    }
+    30% {
+        transform: scaleY(1);
+        opacity: 1;
+    }
+}
+
+@keyframes shakeX {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-10px); }
+    40% { transform: translateX(10px); }
+    60% { transform: translateX(-6px); }
+    80% { transform: translateX(6px); }
+}
+
+@keyframes glitchPulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+}
+
+/* -------------------- 响应式 -------------------- */
+@media (max-width: 500px) {
+    body {
+        padding: 0;
+    }
+    .panel {
+        border: none;
+        min-height: 100vh;
+        max-height: 100vh;
+    }
+    .corner {
+        display: none;
+    }
+    .topbar-inner {
+        padding: 16px;
+    }
+    .brand-text h1 {
+        font-size: 22px;
+    }
+    .brand-icon-box {
+        width: 42px;
+        height: 42px;
+        font-size: 22px;
+    }
+    .chat-area {
+        padding: 16px;
+    }
+    .input-zone-inner {
+        padding: 12px 16px 16px;
+    }
+    .msg-content {
+        max-width: 80%;
+        font-size: 14px;
+    }
+    .btn-send {
+        padding: 14px 20px;
+        font-size: 14px;
+    }
+    .input-field {
+        font-size: 14px;
+        padding: 12px 14px;
+    }
+    .welcome-icon > span:first-child {
+        font-size: 44px;
+    }
+    .welcome h2 {
+        font-size: 18px;
+    }
+}
