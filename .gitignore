@@ -16,6 +16,7 @@ env/
 
 # Runtime data
 data/
+logs/
 
 # OS
 .DS_Store
