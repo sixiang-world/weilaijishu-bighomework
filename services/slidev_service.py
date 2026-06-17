@@ -72,6 +72,10 @@ def build_slidev(markdown_content: str, timeout: int = 120) -> str:
     Raises:
         RuntimeError: 构建失败时抛出
     """
+    # 共享 npm 缓存目录，避免每次都重新下载依赖（首次约 50-200MB）
+    npm_cache_dir = os.path.join(tempfile.gettempdir(), "slidev_npm_cache")
+    os.makedirs(npm_cache_dir, exist_ok=True)
+
     tmp_dir = tempfile.mkdtemp(prefix="slidev_")
 
     try:
@@ -102,10 +106,10 @@ def build_slidev(markdown_content: str, timeout: int = 120) -> str:
                     f"  }},\n"
                     f"}})\n")
 
-        # 5. npm install
+        # 5. npm install（使用共享缓存加速后续构建）
         logger.info("Slidev: npm install ...")
         npm_install = subprocess.run(
-            ["npm", "install", "--no-audit", "--no-fund"],
+            ["npm", "install", "--no-audit", "--no-fund", "--cache", npm_cache_dir],
             cwd=tmp_dir,
             capture_output=True,
             text=True,
@@ -150,10 +154,7 @@ def build_slidev(markdown_content: str, timeout: int = 120) -> str:
         raise RuntimeError(f"Slidev 构建超时（{timeout}s）")
     finally:
         # 清理临时目录
-        try:
-            shutil.rmtree(tmp_dir, ignore_errors=True)
-        except Exception:
-            pass
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 def _inline_remaining_assets(html: str, dist_dir: str) -> str:
@@ -162,7 +163,6 @@ def _inline_remaining_assets(html: str, dist_dir: str) -> str:
     主要处理 CSS 文件和小型 JS 文件
     """
     import re
-    import base64
 
     # 内联 CSS 文件引用
     css_pattern = re.compile(
@@ -174,11 +174,17 @@ def _inline_remaining_assets(html: str, dist_dir: str) -> str:
         css_path = match.group(1)
         if css_path.startswith(("http://", "https://", "data:")):
             return match.group(0)
-        full_path = os.path.join(dist_dir, css_path.lstrip("/"))
-        if os.path.exists(full_path):
-            with open(full_path, "r", encoding="utf-8") as f:
-                css_content = f.read()
-            return f"<style>{css_content}</style>"
+        # 路径遍历防护：规范化路径并验证在 dist_dir 内
+        full_path = os.path.normpath(os.path.join(dist_dir, css_path.lstrip("/")))
+        if not full_path.startswith(os.path.normpath(dist_dir)):
+            return match.group(0)
+        try:
+            if os.path.exists(full_path):
+                with open(full_path, "r", encoding="utf-8") as f:
+                    css_content = f.read()
+                return f"<style>{css_content}</style>"
+        except (OSError, UnicodeDecodeError):
+            pass
         return match.group(0)
 
     html = css_pattern.sub(replace_css, html)
@@ -193,13 +199,19 @@ def _inline_remaining_assets(html: str, dist_dir: str) -> str:
         js_path = match.group(1)
         if js_path.startswith(("http://", "https://", "data:")):
             return match.group(0)
-        full_path = os.path.join(dist_dir, js_path.lstrip("/"))
-        if os.path.exists(full_path):
-            file_size = os.path.getsize(full_path)
-            if file_size < 500_000:  # 只内联 <500KB 的 JS
-                with open(full_path, "r", encoding="utf-8") as f:
-                    js_content = f.read()
-                return f"<script>{js_content}</script>"
+        # 路径遍历防护
+        full_path = os.path.normpath(os.path.join(dist_dir, js_path.lstrip("/")))
+        if not full_path.startswith(os.path.normpath(dist_dir)):
+            return match.group(0)
+        try:
+            if os.path.exists(full_path):
+                file_size = os.path.getsize(full_path)
+                if file_size < 500_000:  # 只内联 <500KB 的 JS
+                    with open(full_path, "r", encoding="utf-8") as f:
+                        js_content = f.read()
+                    return f"<script>{js_content}</script>"
+        except (OSError, UnicodeDecodeError):
+            pass
         return match.group(0)
 
     html = js_pattern.sub(replace_js, html)

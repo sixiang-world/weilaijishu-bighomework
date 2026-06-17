@@ -36,7 +36,8 @@ COPY templates/ ./templates/
 
 # 创建非 root 用户运行
 RUN groupadd -r app && useradd -r -g app -d /app -s /sbin/nologin app \
-    && chown -R app:app /app
+    && mkdir -p /home/app/.npm /tmp/slidev_npm_cache \
+    && chown -R app:app /app /home/app/.npm /tmp/slidev_npm_cache
 USER app
 
 # 容器端口
