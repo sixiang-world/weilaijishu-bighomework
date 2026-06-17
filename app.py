@@ -6,6 +6,7 @@
 import json
 import uuid
 import re
+import os
 import time
 import logging
 import urllib.request
@@ -20,12 +21,22 @@ from config import Config
 from services.chat_service import chat_service
 
 # ================================================================
-# 日志配置
+# 日志配置（控制台 + 文件）
 # ================================================================
+_log_dir = os.path.join(os.path.dirname(__file__), "logs")
+os.makedirs(_log_dir, exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler(
+            os.path.join(_log_dir, "app.log"),
+            encoding="utf-8",
+        ),
+    ],
 )
 logger = logging.getLogger("千禧梦")
 
