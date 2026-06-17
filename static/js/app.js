@@ -144,7 +144,7 @@ function parseCommand(text) {
 function resolveCommandContent(parsed) {
     switch (parsed.command) {
         case 'ppt':
-            return '请用 Slidev Markdown 格式生成一份 PPT 幻灯片，主题是：' + parsed.content;
+            return '请直接用 Slidev Markdown 格式生成一份 PPT 幻灯片，主题是：' + parsed.content + '。直接输出 Slidev Markdown 内容，不要加任何标签或包裹。';
         case 'doc':
             // TODO: 文档生成命令
             return parsed.content;
@@ -914,7 +914,13 @@ async function sendMessage() {
         // 最终渲染 + 代码复制按钮
         contentDiv.innerHTML = renderMarkdown(fullReply);
         addCodeCopyButtons(msgDiv);
-        detectAndPublish(contentDiv, fullReply);
+
+        // 命令模式：直接发布完整回复，不需要 [ppt] 标签
+        if (parsed && parsed.command === 'ppt') {
+            await publishCommandReply(contentDiv, fullReply, 'ppt');
+        } else {
+            detectAndPublish(contentDiv, fullReply);
+        }
 
         // 回复完成 — 桌宠弹出一个随机 emoji，然后回到空闲
         const emojiKeys = ['happy', 'surprise', 'excited', 'cool'];
@@ -1238,12 +1244,48 @@ function copyUrl(btn, url) {
     });
 }
 
+// 命令模式发布：直接把 AI 完整回复作为指定类型内容发布
+async function publishCommandReply(contentDiv, fullReply, type) {
+    // 清空消息内容，只保留说明文字（去掉 AI 可能额外加的解释）
+    contentDiv.innerHTML = '<p style="opacity:0.6">正在发布' + (type === 'ppt' ? '幻灯片' : type) + '...</p>';
+
+    // 阶段 1：正在发布
+    const loadingEl = document.createElement('div');
+    loadingEl.className = 'publish-card loading';
+    loadingEl.innerHTML = '<div class="publish-card-icon">' + icon('upload') + '</div><div class="publish-card-info"><div class="publish-card-label">正在发布...</div><div class="publish-card-hint">Slidev 构建中，请稍候</div></div>';
+    contentDiv.innerHTML = '';
+    contentDiv.appendChild(loadingEl);
+    setPetState('thinking');
+    showPetEmoji('thinking');
+
+    const url = await publishContent(fullReply, type);
+
+    loadingEl.remove();
+
+    if (url) {
+        contentDiv.innerHTML = '<p style="opacity:0.6">幻灯片已生成 ✨</p>';
+        contentDiv.insertAdjacentHTML('beforeend', renderPublishCard(url, type));
+        addCodeCopyButtons(contentDiv.closest('.message') || contentDiv);
+        setPetState('replying');
+        showPetEmoji('excited');
+        setTimeout(function() { setPetState('idle'); }, 1200);
+    } else {
+        contentDiv.innerHTML = '';
+        contentDiv.insertAdjacentHTML('beforeend',
+            '<div class="publish-card error"><div class="publish-card-icon">' + icon('error') + '</div><div class="publish-card-info"><div class="publish-card-label">发布失败</div><div class="publish-card-hint">请检查后重试</div></div></div>'
+        );
+        showPetEmoji('confused');
+        setTimeout(function() { setPetState('idle'); }, 1200);
+    }
+}
+
 // 检测消息中的 [doc]/[ppt]/[page] 标记并自动发布
 async function detectAndPublish(msgContentDiv, fullReply) {
     // 使用原始 AI 回复文本（而非 DOM textContent）提取内容，
     // 避免"复制/重新生成/发布/文档/幻灯片/网页"等操作按钮文字被混入。
     const text = fullReply || msgContentDiv.textContent;
-    const types = ['doc', 'ppt', 'page'];
+    // 支持 [ppt] 和 [pt]（AI 有时会漏写一个 p）
+    const types = ['doc', 'ppt', 'pt', 'page'];
 
     for (const type of types) {
         const openTag = `[${type}]`;
@@ -1270,8 +1312,11 @@ async function detectAndPublish(msgContentDiv, fullReply) {
                 setPetState('thinking');
                 showPetEmoji('thinking');
 
+                // AI 可能生成 [pt] 而非 [ppt]，统一映射为 ppt
+                const publishType = (type === 'pt') ? 'ppt' : type;
+
                 // 发布（page 类型会在请求前触发 onStage('repairing')）
-                const url = await publishContent(rawContent, type, function(stage) {
+                const url = await publishContent(rawContent, publishType, function(stage) {
                     if (stage === 'repairing') {
                         loadingEl.innerHTML = '<div class="publish-card-icon">' + icon('search') + '</div><div class="publish-card-info"><div class="publish-card-label">AI 正在二次验证...</div><div class="publish-card-hint">检查并修复 HTML 结构</div></div>';
                         showPetEmoji('confused');
