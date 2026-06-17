@@ -46,6 +46,176 @@ const ROBOT_SVG = `<svg viewBox="0 0 40 40" fill="none"><line x1="20" y1="2" x2=
 const USER_SVG = `<svg viewBox="0 0 40 40" fill="none"><circle cx="20" cy="12" r="8" fill="none" stroke="#F5F0E6" stroke-width="2.5"/><rect x="8" y="24" width="24" height="14" fill="none" stroke="#F5F0E6" stroke-width="2.5"/><line x1="4" y1="38" x2="14" y2="28" stroke="#F5F0E6" stroke-width="2" stroke-linecap="square"/><line x1="36" y1="38" x2="26" y2="28" stroke="#F5F0E6" stroke-width="2" stroke-linecap="square"/></svg>`;
 
 // ================================================================
+// 命令系统 — @/ 前缀触发内容生成
+// ================================================================
+
+const COMMANDS = [
+    { cmd: 'ppt',  label: '生成 PPT 幻灯片', icon: 'ppt',  enabled: true  },
+    { cmd: 'doc',  label: '生成文档',        icon: 'doc',  enabled: false },
+    { cmd: 'page', label: '生成网页',        icon: 'page', enabled: false },
+];
+
+// 候选菜单状态
+let commandMenu = null;
+let commandMenuIndex = -1;
+let commandPrefix = '';
+
+function createCommandMenu() {
+    if (commandMenu) return;
+    commandMenu = document.createElement('div');
+    commandMenu.className = 'command-menu';
+    commandMenu.id = 'commandMenu';
+    // 插入到 input-zone 内，位于 input-field 上方
+    const inputZone = document.querySelector('.input-zone-inner');
+    inputZone.style.position = 'relative';
+    inputZone.insertBefore(commandMenu, inputZone.firstChild);
+}
+
+function showCommandMenu(prefix) {
+    if (!commandMenu) createCommandMenu();
+    commandPrefix = prefix;
+    commandMenuIndex = -1;
+
+    const inputVal = messageInput.value;
+    // 用户可能已经输入了部分命令名（如 "@p"），用来过滤
+    const partial = inputVal.slice(1).toLowerCase();
+
+    let html = '';
+    for (const c of COMMANDS) {
+        const matched = !partial || c.cmd.startsWith(partial);
+        if (!matched) continue;
+        const disabledClass = c.enabled ? '' : ' disabled';
+        const disabledHint = c.enabled ? '' : '<span class="command-menu-hint">即将上线</span>';
+        html += '<div class="command-menu-item' + disabledClass + '" data-cmd="' + c.cmd + '">'
+            + '<div class="command-menu-item-icon">' + icon(c.icon) + '</div>'
+            + '<div class="command-menu-item-text">'
+            +   '<div class="command-menu-item-label">' + escapeHtml(c.label) + '</div>'
+            +   disabledHint
+            + '</div></div>';
+    }
+
+    if (!html) {
+        hideCommandMenu();
+        return;
+    }
+
+    commandMenu.innerHTML = html;
+    commandMenu.classList.add('visible');
+
+    // 点击事件
+    commandMenu.querySelectorAll('.command-menu-item:not(.disabled)').forEach(function(item) {
+        item.addEventListener('mousedown', function(e) {
+            e.preventDefault(); // 阻止 blur 事件先触发
+            selectCommand(item.dataset.cmd);
+        });
+    });
+}
+
+function hideCommandMenu() {
+    if (commandMenu) {
+        commandMenu.classList.remove('visible');
+        commandMenuIndex = -1;
+    }
+}
+
+function selectCommand(cmd) {
+    const cmdObj = COMMANDS.find(function(c) { return c.cmd === cmd; });
+    if (!cmdObj) return;
+
+    if (!cmdObj.enabled) return;
+
+    hideCommandMenu();
+    messageInput.value = commandPrefix + cmd + ' ';
+    messageInput.focus();
+    // 光标移到末尾
+    messageInput.setSelectionRange(messageInput.value.length, messageInput.value.length);
+}
+
+/**
+ * 解析输入中的命令
+ * @param {string} text - 用户输入的完整文本
+ * @returns {object|null} - { prefix, command, content } 或 null
+ */
+function parseCommand(text) {
+    const match = text.match(/^([@/])(ppt|doc|page)\s+(.+)$/);
+    if (match) {
+        return { prefix: match[1], command: match[2], content: match[3] };
+    }
+    return null;
+}
+
+/**
+ * 将命令转换为发送给 AI 的 prompt 内容
+ * @param {object} parsed - parseCommand() 的返回值
+ * @returns {string} - 实际发送给 AI 的内容
+ */
+function resolveCommandContent(parsed) {
+    switch (parsed.command) {
+        case 'ppt':
+            return '请用 Slidev Markdown 格式生成一份 PPT 幻灯片，主题是：' + parsed.content;
+        case 'doc':
+            // TODO: 文档生成命令
+            return parsed.content;
+        case 'page':
+            // TODO: 网页生成命令
+            return parsed.content;
+        default:
+            return parsed.content;
+    }
+}
+
+// 输入框监听：显示/隐藏候选菜单
+messageInput.addEventListener('input', function() {
+    const val = messageInput.value;
+    if (val === '@' || val === '/') {
+        showCommandMenu(val);
+    } else if (val.length > 1 && (val[0] === '@' || val[0] === '/')) {
+        // 用户继续输入命令名，更新过滤
+        showCommandMenu(val[0]);
+    } else {
+        hideCommandMenu();
+    }
+});
+
+messageInput.addEventListener('blur', function() {
+    // 延迟隐藏，让 mousedown 事件能先触发
+    setTimeout(hideCommandMenu, 150);
+});
+
+// 键盘导航候选菜单
+messageInput.addEventListener('keydown', function(e) {
+    if (!commandMenu || !commandMenu.classList.contains('visible')) return;
+
+    const items = commandMenu.querySelectorAll('.command-menu-item:not(.disabled)');
+    if (!items.length) return;
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        commandMenuIndex = Math.min(commandMenuIndex + 1, items.length - 1);
+        items.forEach(function(el, i) { el.classList.toggle('active', i === commandMenuIndex); });
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        commandMenuIndex = Math.max(commandMenuIndex - 1, 0);
+        items.forEach(function(el, i) { el.classList.toggle('active', i === commandMenuIndex); });
+    } else if (e.key === 'Enter' && commandMenuIndex >= 0) {
+        e.preventDefault();
+        selectCommand(items[commandMenuIndex].dataset.cmd);
+    } else if (e.key === 'Escape') {
+        e.preventDefault();
+        hideCommandMenu();
+    }
+});
+
+// 点击外部关闭
+document.addEventListener('click', function(e) {
+    if (commandMenu && commandMenu.classList.contains('visible')) {
+        if (!e.target.closest('.command-menu') && e.target !== messageInput) {
+            hideCommandMenu();
+        }
+    }
+});
+
+// ================================================================
 // 桌宠系统
 // ================================================================
 
@@ -629,8 +799,26 @@ let abortController = null;
 async function sendMessage() {
     if (isLoading) return;
 
-    const content = messageInput.value.trim();
-    if (!content) return;
+    const rawContent = messageInput.value.trim();
+    if (!rawContent) return;
+
+    // 解析命令前缀（@ppt /ppt 等）
+    const parsed = parseCommand(rawContent);
+    let content;
+    let displayText = rawContent; // 用户看到的文本
+
+    if (parsed) {
+        const cmdObj = COMMANDS.find(function(c) { return c.cmd === parsed.command; });
+        if (cmdObj && !cmdObj.enabled) {
+            // 命令尚未启用，提示用户
+            showError(cmdObj.label + '功能即将上线，敬请期待～');
+            messageInput.value = '';
+            return;
+        }
+        content = resolveCommandContent(parsed);
+    } else {
+        content = rawContent;
+    }
 
     // 立即锁定，防止快速连按 Enter 并发请求
     isLoading = true;
@@ -638,8 +826,9 @@ async function sendMessage() {
     const welcomeEl = document.getElementById('welcomeMessage');
     if (welcomeEl) welcomeEl.remove();
 
-    addMessage(content, 'user');
+    addMessage(displayText, 'user');
     messageInput.value = '';
+    hideCommandMenu();
     messageInput.focus();
 
     // 桌宠进入思考态
@@ -733,7 +922,7 @@ async function sendMessage() {
         // 最终渲染 + 代码复制按钮
         contentDiv.innerHTML = renderMarkdown(fullReply);
         addCodeCopyButtons(msgDiv);
-        detectAndPublish(contentDiv);
+        detectAndPublish(contentDiv, fullReply);
 
         // 回复完成 — 桌宠弹出一个随机 emoji，然后回到空闲
         const emojiKeys = ['happy', 'surprise', 'excited', 'cool'];
@@ -970,12 +1159,12 @@ async function streamRegenerate(userText) {
             }
         }
 
-        contentDiv.classList.remove('streaming');
-        contentDiv.innerHTML = renderMarkdown(fullReply);
-        addCodeCopyButtons(msgDiv);
-        detectAndPublish(contentDiv);
+	        contentDiv.classList.remove('streaming');
+	        contentDiv.innerHTML = renderMarkdown(fullReply);
+	        addCodeCopyButtons(msgDiv);
+	        detectAndPublish(contentDiv, fullReply);
 
-        const emojiKeys = ['happy', 'surprise', 'excited', 'cool'];
+	        const emojiKeys = ['happy', 'surprise', 'excited', 'cool'];
         showPetEmoji(emojiKeys[Math.floor(Math.random() * emojiKeys.length)]);
         setTimeout(() => setPetState('idle'), 800);
         hideStopButton();
@@ -1058,8 +1247,10 @@ function copyUrl(btn, url) {
 }
 
 // 检测消息中的 [doc]/[ppt]/[page] 标记并自动发布
-async function detectAndPublish(msgContentDiv) {
-    const text = msgContentDiv.textContent;
+async function detectAndPublish(msgContentDiv, fullReply) {
+    // 使用原始 AI 回复文本（而非 DOM textContent）提取内容，
+    // 避免"复制/重新生成/发布/文档/幻灯片/网页"等操作按钮文字被混入。
+    const text = fullReply || msgContentDiv.textContent;
     const types = ['doc', 'ppt', 'page'];
 
     for (const type of types) {
@@ -1120,7 +1311,10 @@ async function detectAndPublish(msgContentDiv) {
 async function publishMessage(btn, type) {
     const msgBody = btn.closest('.msg-body') || btn.closest('.msg-content');
     const contentDiv = msgBody.querySelector('.msg-content');
-    const text = contentDiv.textContent;
+    // 克隆内容，去掉操作栏和发布卡片，只取正文纯文本
+    const clone = contentDiv.cloneNode(true);
+    clone.querySelectorAll('.msg-actions, .publish-card').forEach(function(el) { el.remove(); });
+    const text = clone.textContent.trim();
 
     btn.textContent = '发布中...';
     btn.disabled = true;

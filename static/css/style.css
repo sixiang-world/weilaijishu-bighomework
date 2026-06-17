@@ -1456,3 +1456,68 @@ a, button, .btn, .btn-send, .btn-clear, .btn-toggle-sidebar,
         padding: 12px 14px;
     }
 }
+
+/* ============================================================
+   命令候选菜单 — @/ 前缀触发
+   ============================================================ */
+.command-menu {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    margin-bottom: 6px;
+    background: #1A1A1A;
+    border: 2px solid #F5F0E6;
+    border-radius: 4px;
+    overflow: hidden;
+    z-index: 20;
+    max-height: 220px;
+    overflow-y: auto;
+}
+.command-menu.visible {
+    display: block;
+}
+.command-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.command-menu-item:hover,
+.command-menu-item.active {
+    background: #D62828;
+}
+.command-menu-item.disabled {
+    opacity: 0.45;
+    cursor: default;
+    pointer-events: none;
+}
+.command-menu-item-icon {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+}
+.command-menu-item-icon svg {
+    width: 24px;
+    height: 24px;
+}
+.command-menu-item-text {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex: 1;
+}
+.command-menu-item-label {
+    color: #F5F0E6;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+.command-menu-hint {
+    color: #6366F1;
+    font-size: 11px;
+    font-style: italic;
+}

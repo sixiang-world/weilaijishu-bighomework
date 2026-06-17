@@ -14,6 +14,7 @@ from flask_cors import CORS
 
 from config import Config
 from services.chat_service import chat_service
+from services.slidev_service import build_slidev
 
 
 def create_app() -> Flask:
@@ -213,6 +214,12 @@ def create_app() -> Flask:
         if pub_type == "page":
             content = repair_html(content)
             content = chat_service.repair_html(content)
+        elif pub_type == "ppt":
+            # Slidev Markdown → 单个 HTML
+            try:
+                content = build_slidev(content)
+            except Exception as e:
+                return jsonify({"error": f"PPT 构建失败: {str(e)}"}), 500
 
         key = f"qx_{pub_type}_{uuid.uuid4().hex[:8]}"
 
