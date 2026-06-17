@@ -238,7 +238,7 @@ def get_last_assistant_message_id(session_id: str) -> int | None:
 
 
 def clear_messages(session_id: str) -> None:
-    """清空会话的消息（保留系统提示词）""
+    """清空会话的消息（保留系统提示词）"""
     with get_connection() as conn:
         conn.execute(
             "DELETE FROM messages WHERE session_id = ? AND role != 'system'",
