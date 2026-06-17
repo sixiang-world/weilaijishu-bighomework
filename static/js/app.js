@@ -458,8 +458,6 @@ const ICONS = {
     error: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none"><rect x="2" y="2" width="20" height="20" rx="2" fill="#D62828"/><path d="M7 7l10 10M17 7L7 17" stroke="#F5F0E6" stroke-width="2.5" stroke-linecap="square"/></svg>`,
     // 文档：带折角的纸
     doc: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none"><path d="M4 2h10l6 6v14H4V2z" fill="#F5F0E6" stroke="#1A1A1A" stroke-width="2"/><path d="M14 2v6h6" fill="none" stroke="#1A1A1A" stroke-width="2"/><line x1="8" y1="10" x2="16" y2="10" stroke="#D62828" stroke-width="1.5"/><line x1="8" y1="14" x2="16" y2="14" stroke="#1A1A1A" stroke-width="1" opacity="0.3"/><line x1="8" y1="17" x2="13" y2="17" stroke="#1A1A1A" stroke-width="1" opacity="0.3"/></svg>`,
-    // 幻灯片：网格
-    ppt: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" fill="#F5F0E6" stroke="#1A1A1A" stroke-width="2"/><line x1="12" y1="3" x2="12" y2="17" stroke="#1A1A1A" stroke-width="1.5"/><line x1="2" y1="10" x2="22" y2="10" stroke="#1A1A1A" stroke-width="1.5"/><rect x="9" y="19" width="6" height="2" fill="#D62828"/></svg>`,
     // 网页：圆形 + 十字
     page: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none"><circle cx="12" cy="12" r="9" stroke="#1A1A1A" stroke-width="2"/><ellipse cx="12" cy="12" rx="4" ry="9" stroke="#1A1A1A" stroke-width="1.5"/><line x1="3" y1="12" x2="21" y2="12" stroke="#1A1A1A" stroke-width="1.5"/><circle cx="12" cy="12" r="2" fill="#D62828"/></svg>`,
     // 加载：旋转方块
