@@ -175,17 +175,21 @@ function toggleQuickCmd(cmd) {
     messageInput.focus();
 }
 
-// 输入框监听：显示/隐藏候选菜单
+// 输入框监听：显示/隐藏候选菜单 + 同步按钮高亮
 messageInput.addEventListener('input', function() {
     const val = messageInput.value;
     if (val === '@' || val === '/') {
         showCommandMenu(val);
     } else if (val.length > 1 && (val[0] === '@' || val[0] === '/')) {
-        // 用户继续输入命令名，更新过滤
         showCommandMenu(val[0]);
     } else {
         hideCommandMenu();
     }
+    // 同步快捷按钮高亮
+    var btnDoc = document.getElementById('btnQuickDoc');
+    var btnPage = document.getElementById('btnQuickPage');
+    if (btnDoc) btnDoc.classList.toggle('active', val.startsWith('@doc '));
+    if (btnPage) btnPage.classList.toggle('active', val.startsWith('@page '));
 });
 
 messageInput.addEventListener('blur', function() {
@@ -1547,5 +1551,13 @@ window.addEventListener('popstate', function(e) {
     }
 });
 
-loadSessions();
+// 启动：加载会话列表，如果 URL 有 session_id 则自动加载该会话历史
+loadSessions().then(function() {
+    var match = window.location.pathname.match(/^\/chat\/([a-zA-Z0-9_-]+)/);
+    if (match && match[1] !== currentSessionId) {
+        currentSessionId = match[1];
+        loadChatHistory();
+        renderSessionList();
+    }
+});
 messageInput.focus();
