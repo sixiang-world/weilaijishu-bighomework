@@ -3,12 +3,12 @@ Slidev 构建服务
 将 AI 生成的 Slidev Markdown 转换为单个自包含 HTML 文件
 """
 
+import json
+import logging
 import os
 import shutil
 import subprocess
 import tempfile
-import json
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -59,19 +59,7 @@ exportFilename: index
 
 
 def build_slidev(markdown_content: str, timeout: int = 120) -> str:
-    """
-    将 Slidev Markdown 构建为单个自包含 HTML 文件
-
-    Args:
-        markdown_content: Slidev Markdown 格式的幻灯片内容
-        timeout: 构建超时时间（秒）
-
-    Returns:
-        构建后的完整 HTML 字符串
-
-    Raises:
-        RuntimeError: 构建失败时抛出
-    """
+    """将 Slidev Markdown 构建为单个自包含 HTML 文件"""
     # 共享 npm 缓存目录，避免每次都重新下载依赖（首次约 50-200MB）
     npm_cache_dir = os.path.join(tempfile.gettempdir(), "slidev_npm_cache")
     os.makedirs(npm_cache_dir, exist_ok=True)

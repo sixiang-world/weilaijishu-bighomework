@@ -131,11 +131,7 @@ function selectCommand(cmd) {
     messageInput.setSelectionRange(messageInput.value.length, messageInput.value.length);
 }
 
-/**
- * 解析输入中的命令
- * @param {string} text - 用户输入的完整文本
- * @returns {object|null} - { prefix, command, content } 或 null
- */
+// 解析输入中的命令（@ppt 内容 或 /ppt 内容）
 function parseCommand(text) {
     const match = text.match(/^([@/])(ppt|doc|page)\s+(.+)$/);
     if (match) {
@@ -144,11 +140,7 @@ function parseCommand(text) {
     return null;
 }
 
-/**
- * 将命令转换为发送给 AI 的 prompt 内容
- * @param {object} parsed - parseCommand() 的返回值
- * @returns {string} - 实际发送给 AI 的内容
- */
+// 将命令转换为发送给 AI 的 prompt 内容
 function resolveCommandContent(parsed) {
     switch (parsed.command) {
         case 'ppt':
