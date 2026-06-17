@@ -1521,3 +1521,34 @@ a, button, .btn, .btn-send, .btn-clear, .btn-toggle-sidebar,
     font-size: 11px;
     font-style: italic;
 }
+
+/* ============================================================
+   快捷命令按钮
+   ============================================================ */
+.quick-commands {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+.quick-cmd-btn {
+    background: transparent;
+    border: 1.5px solid rgba(214, 40, 40, 0.3);
+    color: #D62828;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: inherit;
+    letter-spacing: 0.3px;
+}
+.quick-cmd-btn:hover {
+    background: rgba(214, 40, 40, 0.08);
+    border-color: #D62828;
+}
+.quick-cmd-btn.active {
+    background: #D62828;
+    color: #F5F0E6;
+    border-color: #D62828;
+}

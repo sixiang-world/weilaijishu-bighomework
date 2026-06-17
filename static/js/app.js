@@ -50,9 +50,8 @@ const USER_SVG = `<svg viewBox="0 0 40 40" fill="none"><circle cx="20" cy="12" r
 // ================================================================
 
 const COMMANDS = [
-    { cmd: 'ppt',  label: '生成 PPT 幻灯片', icon: 'ppt',  enabled: true  },
-    { cmd: 'doc',  label: '生成文档',        icon: 'doc',  enabled: false },
-    { cmd: 'page', label: '生成网页',        icon: 'page', enabled: false },
+    { cmd: 'doc',  label: '生成文档', icon: 'doc'  },
+    { cmd: 'page', label: '生成网页', icon: 'page' },
 ];
 
 // 候选菜单状态
@@ -122,7 +121,7 @@ function selectCommand(cmd) {
     const cmdObj = COMMANDS.find(function(c) { return c.cmd === cmd; });
     if (!cmdObj) return;
 
-    if (!cmdObj.enabled) return;
+    // all commands enabled
 
     hideCommandMenu();
     messageInput.value = commandPrefix + cmd + ' ';
@@ -131,9 +130,9 @@ function selectCommand(cmd) {
     messageInput.setSelectionRange(messageInput.value.length, messageInput.value.length);
 }
 
-// 解析输入中的命令（@ppt 内容 或 /ppt 内容）
+// 解析输入中的命令（@doc 内容 或 /page 内容）
 function parseCommand(text) {
-    const match = text.match(/^([@/])(ppt|doc|page)\s+(.+)$/);
+    const match = text.match(/^([@/])(doc|page)\s+(.+)$/);
     if (match) {
         return { prefix: match[1], command: match[2], content: match[3] };
     }
@@ -143,17 +142,32 @@ function parseCommand(text) {
 // 将命令转换为发送给 AI 的 prompt 内容
 function resolveCommandContent(parsed) {
     switch (parsed.command) {
-        case 'ppt':
-            return '请直接用 Slidev Markdown 格式生成一份 PPT 幻灯片，主题是：' + parsed.content + '。直接输出 Slidev Markdown 内容，不要加任何标签或包裹。';
         case 'doc':
-            // TODO: 文档生成命令
-            return parsed.content;
+            return '请生成一篇完整的 Markdown 文档，主题是：' + parsed.content + '。直接输出 Markdown 内容，不要加任何标签或包裹。';
         case 'page':
-            // TODO: 网页生成命令
-            return parsed.content;
+            return '请生成一个完整的 HTML 网页，主题是：' + parsed.content + '。直接输出完整 HTML 代码，不要加任何标签或包裹。';
         default:
             return parsed.content;
     }
+}
+
+// 快捷按钮：一键添加/取消 @命令 前缀
+function toggleQuickCmd(cmd) {
+    var prefix = '@' + cmd + ' ';
+    var val = messageInput.value;
+    if (val.startsWith(prefix)) {
+        // 第二下取消
+        messageInput.value = val.slice(prefix.length);
+    } else {
+        // 检查是否有其他 @命令 前缀，替换之
+        var otherCmd = val.match(/^@(doc|page)\s*/);
+        if (otherCmd) {
+            messageInput.value = prefix + val.slice(otherCmd[0].length);
+        } else {
+            messageInput.value = prefix + val;
+        }
+    }
+    messageInput.focus();
 }
 
 // 输入框监听：显示/隐藏候选菜单
@@ -794,7 +808,7 @@ async function sendMessage() {
     const rawContent = messageInput.value.trim();
     if (!rawContent) return;
 
-    // 解析命令前缀（@ppt /ppt 等）
+    // 解析命令前缀（@doc /page 等）
     const parsed = parseCommand(rawContent);
     let content;
     let displayText = rawContent; // 用户看到的文本
@@ -872,7 +886,7 @@ async function sendMessage() {
                 <div class="msg-actions">
                     <button class="msg-action-btn" onclick="copyMessage(this)">复制</button>
                     <button class="msg-action-btn" onclick="regenerate(this)">重新生成</button>
-                    <div class="msg-action-dropdown"><button class="msg-action-btn">发布 ▾</button><div class="msg-action-menu"><button data-publish="doc">文档</button><button data-publish="ppt">幻灯片</button><button data-publish="page">网页</button></div></div>
+                    <div class="msg-action-dropdown"><button class="msg-action-btn">发布 ▾</button><div class="msg-action-menu"><button data-publish="doc">文档</button><button data-publish="page">网页</button></div></div>
                     <span class="msg-time">${timeStr}</span>
                 </div>
             </div>
@@ -915,9 +929,9 @@ async function sendMessage() {
         contentDiv.innerHTML = renderMarkdown(fullReply);
         addCodeCopyButtons(msgDiv);
 
-        // 命令模式：直接发布完整回复，不需要 [ppt] 标签
-        if (parsed && parsed.command === 'ppt') {
-            await publishCommandReply(contentDiv, fullReply, 'ppt');
+        // 命令模式：直接发布完整回复
+        if (parsed && (parsed.command === 'doc' || parsed.command === 'page')) {
+            await publishCommandReply(contentDiv, fullReply, parsed.command);
         } else {
             detectAndPublish(contentDiv, fullReply);
         }
@@ -988,7 +1002,7 @@ function addMessage(text, type) {
                 <div class="msg-actions">
                     <button class="msg-action-btn" onclick="copyMessage(this)">复制</button>
                     ${type === 'robot' ? '<button class="msg-action-btn" onclick="regenerate(this)">重新生成</button>' : ''}
-                    ${type === 'robot' ? '<div class="msg-action-dropdown"><button class="msg-action-btn">发布 ▾</button><div class="msg-action-menu"><button data-publish="doc">文档</button><button data-publish="ppt">幻灯片</button><button data-publish="page">网页</button></div></div>' : ''}
+                    ${type === 'robot' ? '<div class="msg-action-dropdown"><button class="msg-action-btn">发布 ▾</button><div class="msg-action-menu"><button data-publish="doc">文档</button><button data-publish="page">网页</button></div></div>' : ''}
                     <span class="msg-time">${timeStr}</span>
                 </div>
             </div>
@@ -1123,7 +1137,7 @@ async function streamRegenerate(userText) {
                 <div class="msg-actions">
                     <button class="msg-action-btn" onclick="copyMessage(this)">复制</button>
                     <button class="msg-action-btn" onclick="regenerate(this)">重新生成</button>
-                    <div class="msg-action-dropdown"><button class="msg-action-btn">发布 ▾</button><div class="msg-action-menu"><button data-publish="doc">文档</button><button data-publish="ppt">幻灯片</button><button data-publish="page">网页</button></div></div>
+                    <div class="msg-action-dropdown"><button class="msg-action-btn">发布 ▾</button><div class="msg-action-menu"><button data-publish="doc">文档</button><button data-publish="page">网页</button></div></div>
                     <span class="msg-time">${timeStr}</span>
                 </div>
             </div>
@@ -1193,7 +1207,7 @@ async function streamRegenerate(userText) {
 
 
 // ================================================================
-// 发布系统 — doc/ppt/page
+// 发布系统 — doc/page
 // ================================================================
 
 async function publishContent(content, type, onStage) {
@@ -1219,8 +1233,8 @@ async function publishContent(content, type, onStage) {
 }
 
 function renderPublishCard(url, type) {
-    const labels = { doc: '文档已生成', ppt: '幻灯片已生成', page: '网页已生成' };
-    const iconMap = { doc: 'doc', ppt: 'ppt', page: 'page' };
+    const labels = { doc: '文档已生成', page: '网页已生成' };
+    const iconMap = { doc: 'doc', page: 'page' };
     const label = labels[type] || '页面已生成';
     const iconSvg = icon(iconMap[type] || 'page');
 
@@ -1247,12 +1261,13 @@ function copyUrl(btn, url) {
 // 命令模式发布：直接把 AI 完整回复作为指定类型内容发布
 async function publishCommandReply(contentDiv, fullReply, type) {
     // 清空消息内容，只保留说明文字（去掉 AI 可能额外加的解释）
-    contentDiv.innerHTML = '<p style="opacity:0.6">正在发布' + (type === 'ppt' ? '幻灯片' : type) + '...</p>';
+    var typeName = type === 'doc' ? '文档' : '网页';
+    contentDiv.innerHTML = '<p style="opacity:0.6">正在生成' + typeName + '...</p>';
 
     // 阶段 1：正在发布
     const loadingEl = document.createElement('div');
     loadingEl.className = 'publish-card loading';
-    loadingEl.innerHTML = '<div class="publish-card-icon">' + icon('upload') + '</div><div class="publish-card-info"><div class="publish-card-label">正在发布...</div><div class="publish-card-hint">Slidev 构建中，请稍候</div></div>';
+    loadingEl.innerHTML = '<div class="publish-card-icon">' + icon('upload') + '</div><div class="publish-card-info"><div class="publish-card-label">正在发布...</div><div class="publish-card-hint">' + typeName + '生成中，请稍候</div></div>';
     contentDiv.innerHTML = '';
     contentDiv.appendChild(loadingEl);
     setPetState('thinking');
@@ -1263,7 +1278,7 @@ async function publishCommandReply(contentDiv, fullReply, type) {
     loadingEl.remove();
 
     if (url) {
-        contentDiv.innerHTML = '<p style="opacity:0.6">幻灯片已生成 ✨</p>';
+        contentDiv.innerHTML = '<p style="opacity:0.6">' + typeName + '已生成 ✨</p>';
         contentDiv.insertAdjacentHTML('beforeend', renderPublishCard(url, type));
         addCodeCopyButtons(contentDiv.closest('.message') || contentDiv);
         setPetState('replying');
@@ -1279,13 +1294,12 @@ async function publishCommandReply(contentDiv, fullReply, type) {
     }
 }
 
-// 检测消息中的 [doc]/[ppt]/[page] 标记并自动发布
+// 检测消息中的 [doc]/[page] 标记并自动发布
 async function detectAndPublish(msgContentDiv, fullReply) {
     // 使用原始 AI 回复文本（而非 DOM textContent）提取内容，
     // 避免"复制/重新生成/发布/文档/幻灯片/网页"等操作按钮文字被混入。
     const text = fullReply || msgContentDiv.textContent;
-    // 支持 [ppt] 和 [pt]（AI 有时会漏写一个 p）
-    const types = ['doc', 'ppt', 'pt', 'page'];
+    const types = ['doc', 'page'];
 
     for (const type of types) {
         const openTag = `[${type}]`;
@@ -1312,11 +1326,8 @@ async function detectAndPublish(msgContentDiv, fullReply) {
                 setPetState('thinking');
                 showPetEmoji('thinking');
 
-                // AI 可能生成 [pt] 而非 [ppt]，统一映射为 ppt
-                const publishType = (type === 'pt') ? 'ppt' : type;
-
                 // 发布（page 类型会在请求前触发 onStage('repairing')）
-                const url = await publishContent(rawContent, publishType, function(stage) {
+                const url = await publishContent(rawContent, type, function(stage) {
                     if (stage === 'repairing') {
                         loadingEl.innerHTML = '<div class="publish-card-icon">' + icon('search') + '</div><div class="publish-card-info"><div class="publish-card-label">AI 正在二次验证...</div><div class="publish-card-hint">检查并修复 HTML 结构</div></div>';
                         showPetEmoji('confused');
