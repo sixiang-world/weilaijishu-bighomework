@@ -1552,12 +1552,11 @@ window.addEventListener('popstate', function(e) {
 });
 
 // 启动：加载会话列表，如果 URL 有 session_id 则自动加载该会话历史
+var urlMatch = window.location.pathname.match(/^\/chat\/([a-zA-Z0-9_-]+)/);
+if (urlMatch) {
+    loadChatHistory();
+}
 loadSessions().then(function() {
-    var match = window.location.pathname.match(/^\/chat\/([a-zA-Z0-9_-]+)/);
-    if (match && match[1] !== currentSessionId) {
-        currentSessionId = match[1];
-        loadChatHistory();
-        renderSessionList();
-    }
+    renderSessionList();
 });
 messageInput.focus();
