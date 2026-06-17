@@ -155,6 +155,8 @@ function resolveCommandContent(parsed) {
 function toggleQuickCmd(cmd) {
     var prefix = '@' + cmd + ' ';
     var val = messageInput.value;
+    var btnDoc = document.getElementById('btnQuickDoc');
+    var btnPage = document.getElementById('btnQuickPage');
     if (val.startsWith(prefix)) {
         // 第二下取消
         messageInput.value = val.slice(prefix.length);
@@ -167,6 +169,9 @@ function toggleQuickCmd(cmd) {
             messageInput.value = prefix + val;
         }
     }
+    // 更新按钮高亮状态
+    btnDoc.classList.toggle('active', messageInput.value.startsWith('@doc '));
+    btnPage.classList.toggle('active', messageInput.value.startsWith('@page '));
     messageInput.focus();
 }
 
@@ -815,12 +820,6 @@ async function sendMessage() {
 
     if (parsed) {
         const cmdObj = COMMANDS.find(function(c) { return c.cmd === parsed.command; });
-        if (cmdObj && !cmdObj.enabled) {
-            // 命令尚未启用，提示用户
-            showError(cmdObj.label + '功能即将上线，敬请期待～');
-            messageInput.value = '';
-            return;
-        }
         content = resolveCommandContent(parsed);
     } else {
         content = rawContent;

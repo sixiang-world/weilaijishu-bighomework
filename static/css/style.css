@@ -1527,16 +1527,17 @@ a, button, .btn, .btn-send, .btn-clear, .btn-toggle-sidebar,
    ============================================================ */
 .quick-commands {
     display: flex;
-    gap: 6px;
-    margin-bottom: 6px;
+    gap: 8px;
+    padding: 8px 28px 0;
+    flex-shrink: 0;
 }
 .quick-cmd-btn {
     background: transparent;
-    border: 1.5px solid rgba(214, 40, 40, 0.3);
+    border: 1.5px solid rgba(214, 40, 40, 0.35);
     color: #D62828;
     font-size: 12px;
     font-weight: 600;
-    padding: 3px 10px;
+    padding: 4px 12px;
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.15s ease;
