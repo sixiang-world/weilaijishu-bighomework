@@ -51,6 +51,7 @@ def create_app() -> Flask:
         """流式聊天接口（SSE）"""
         data = request.get_json(silent=True) or {}
         content = (data.get("content") or "").strip()
+        display_content = (data.get("display_content") or "").strip() or None
         session_id = sanitize_session_id((data.get("session_id") or "").strip())
 
         if not content:
@@ -58,11 +59,10 @@ def create_app() -> Flask:
 
         def generate():
             try:
-                for token in chat_service.chat_stream(session_id, content):
+                for token in chat_service.chat_stream(session_id, content, display_content):
                     yield f"data: {json.dumps({'token': token})}\n\n"
                 yield "data: [DONE]\n\n"
             except GeneratorExit:
-                # 客户端断连，chat_stream 内部已处理清理
                 pass
 
         return Response(
@@ -138,6 +138,20 @@ def create_app() -> Flask:
         msgs = get_messages(session_id)
         user_messages = [m for m in msgs if m["role"] != "system"]
         return jsonify({"messages": user_messages})
+
+    @app.route("/api/messages/update", methods=["POST"])
+    def api_update_message():
+        """更新消息内容（用于发布后追加 URL）"""
+        from services.database import append_to_message, get_last_assistant_message_id
+        data = request.get_json(silent=True) or {}
+        session_id = sanitize_session_id((data.get("session_id") or "").strip())
+        content = (data.get("content") or "").strip()
+        if not session_id or not content:
+            return jsonify({"error": "参数不完整"}), 400
+        msg_id = get_last_assistant_message_id(session_id)
+        if msg_id:
+            append_to_message(msg_id, content)
+        return jsonify({"ok": True, "message_id": msg_id})
 
     @app.route("/api/clear", methods=["POST"])
     def api_clear():

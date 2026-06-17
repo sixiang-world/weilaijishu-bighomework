@@ -210,8 +210,35 @@ def delete_last_n_messages(session_id: str, n: int) -> None:
             conn.commit()
 
 
+def append_to_message(message_id: int, extra: str) -> None:
+    """在指定消息末尾追加内容"""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT content FROM messages WHERE id = ?",
+            (message_id,),
+        ).fetchone()
+        if row:
+            new_content = row["content"] + "\n" + extra
+            conn.execute(
+                "UPDATE messages SET content = ? WHERE id = ?",
+                (new_content, message_id),
+            )
+            conn.commit()
+
+
+def get_last_assistant_message_id(session_id: str) -> int | None:
+    """获取指定会话最后一条 assistant 消息的 ID"""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT id FROM messages WHERE session_id = ? AND role = 'assistant' "
+            "ORDER BY id DESC LIMIT 1",
+            (session_id,),
+        ).fetchone()
+        return row["id"] if row else None
+
+
 def clear_messages(session_id: str) -> None:
-    """清空会话的消息（保留系统提示词）"""
+    """清空会话的消息（保留系统提示词）""
     with get_connection() as conn:
         conn.execute(
             "DELETE FROM messages WHERE session_id = ? AND role != 'system'",

@@ -767,7 +767,35 @@ async function loadChatHistory() {
                     addMessage(m.content, 'user');
                     hasUserMessages = true;
                 } else if (m.role === 'assistant') {
-                    addMessage(m.content, 'robot');
+                    // 检测 [published:type:url] 标记，恢复发布卡片
+                    var pubMatch = m.content.match(/\[published:(doc|page):(https?:\/\/[^\]]+)\]\s*$/);
+                    if (pubMatch) {
+                        var cleanContent = m.content.replace(/\n?\[published:[^\]]+\]\s*$/, '');
+                        // 同时清理 [page]...[/page] / [doc]...[/doc] 标签
+                        cleanContent = cleanContent.replace(/\n?\[(doc|page)\][\s\S]*?\[\/(doc|page)\]\s*$/, '').trim();
+                        addMessage(cleanContent, 'robot');
+                        var lastMsg = chatContainer.querySelector('.message:last-child .msg-content');
+                        if (lastMsg) {
+                            lastMsg.insertAdjacentHTML('beforeend', renderPublishCard(pubMatch[2], pubMatch[1]));
+                        }
+                    } else {
+                        // 兼容旧数据：检测 [page]...[/page] 或 [doc]...[/doc] 标签
+                        var tagMatch = m.content.match(/^([\s\S]*?)\[(doc|page)\]([\s\S]*?)\[\/(doc|page)\]\s*$/);
+                        if (tagMatch) {
+                            var desc = tagMatch[1].trim();
+                            var tagType = tagMatch[2];
+                            if (desc) addMessage(desc, 'robot');
+                            // 旧数据没有 URL，显示提示
+                            var lastMsg2 = chatContainer.querySelector('.message:last-child .msg-content');
+                            if (lastMsg2) {
+                                lastMsg2.insertAdjacentHTML('beforeend',
+                                    '<div class="publish-card"><div class="publish-card-icon">' + icon('doc') + '</div><div class="publish-card-info"><div class="publish-card-label">' + (tagType === 'doc' ? '文档' : '网页') + '内容已生成</div><div class="publish-card-hint">重新发送可重新发布</div></div></div>'
+                                );
+                            }
+                        } else {
+                            addMessage(m.content, 'robot');
+                        }
+                    }
                 }
             }
             if (!hasUserMessages) {
@@ -778,6 +806,7 @@ async function loadChatHistory() {
         }
         scrollToBottom();
         updateRegenerateButtons();
+        addCodeCopyButtons(chatContainer);
     } catch (_) {
         showWelcome();
     }
@@ -859,6 +888,7 @@ async function sendMessage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 content: content,
+                display_content: (parsed && content !== rawContent) ? rawContent : undefined,
                 session_id: currentSessionId,
             }),
             signal: abortController.signal,
@@ -1261,6 +1291,20 @@ function copyUrl(btn, url) {
     });
 }
 
+// 持久化发布 URL 到数据库（追加到 assistant 消息末尾）
+function savePublishUrl(url, type) {
+    var label = type === 'doc' ? '文档' : type === 'page' ? '网页' : type;
+    // 读取当前 assistant 消息内容，追加发布标记
+    fetch('/api/messages/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            session_id: currentSessionId,
+            content: '[published:' + type + ':' + url + ']',
+        }),
+    }).catch(function() {});
+}
+
 // 命令模式发布：直接把 AI 完整回复作为指定类型内容发布
 async function publishCommandReply(contentDiv, fullReply, type) {
     // 清空消息内容，只保留说明文字（去掉 AI 可能额外加的解释）
@@ -1284,6 +1328,8 @@ async function publishCommandReply(contentDiv, fullReply, type) {
         contentDiv.innerHTML = '<p style="opacity:0.6">' + typeName + '已生成 ✨</p>';
         contentDiv.insertAdjacentHTML('beforeend', renderPublishCard(url, type));
         addCodeCopyButtons(contentDiv.closest('.message') || contentDiv);
+        // 持久化发布 URL 到数据库
+        savePublishUrl(url, type);
         setPetState('replying');
         showPetEmoji('excited');
         setTimeout(function() { setPetState('idle'); }, 1200);
@@ -1341,6 +1387,8 @@ async function detectAndPublish(msgContentDiv, fullReply) {
                 if (url) {
                     msgContentDiv.insertAdjacentHTML('beforeend', renderPublishCard(url, type));
                     addCodeCopyButtons(msgContentDiv.closest('.message') || msgContentDiv);
+                    // 持久化发布 URL 到数据库
+                    savePublishUrl(url, type);
                     // 发布成功
                     setPetState('replying');
                     showPetEmoji('excited');

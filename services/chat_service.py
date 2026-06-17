@@ -77,13 +77,16 @@ class ChatService:
             if new_title:
                 db.rename_session(session_id, new_title)
 
-    def chat_stream(self, session_id: str, content: str):
+    def chat_stream(self, session_id: str, content: str, display_content: str = None):
         """流式处理一条用户消息,逐个 yield token"""
         history = self._ensure_session(session_id)
 
         # 构造 API 调用历史
         messages = [{"role": m["role"], "content": m["content"]} for m in history]
         messages.append({"role": "user", "content": content})
+
+        # 存入数据库的用户消息（display_content 用于保留原始输入）
+        stored_user_content = display_content if display_content else content
 
         full_reply = ""
         ok = True
@@ -102,19 +105,16 @@ class ChatService:
                     full_reply += token
                     yield token
         except GeneratorExit:
-            # 客户端断连：不保存截断的回复，只保存用户消息
-            db.add_message(session_id, "user", content)
+            db.add_message(session_id, "user", stored_user_content)
             return
         except Exception as e:
-            # API 异常：向用户展示错误，但不写入历史（避免污染下一轮上下文）
             ok = False
             yield f"滴~信号中断了......数据碎片:{str(e)}"
 
-        # 始终保存用户消息；仅成功时保存 assistant 回复
-        db.add_message(session_id, "user", content)
+        db.add_message(session_id, "user", stored_user_content)
         if ok and full_reply:
             db.add_message(session_id, "assistant", full_reply)
-            self._auto_rename(session_id, content)
+            self._auto_rename(session_id, stored_user_content)
 
     def regenerate_stream(self, session_id: str, content: str):
         """重新生成：删除最后一条 assistant 回复，用相同 user 消息重新生成"""
