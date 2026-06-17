@@ -6,23 +6,77 @@
 import json
 import uuid
 import re
+import time
+import logging
 import urllib.request
 import urllib.error
+from functools import wraps
+from collections import defaultdict
 
 from flask import Flask, request, jsonify, render_template, Response, stream_with_context
 from flask_cors import CORS
 
 from config import Config
 from services.chat_service import chat_service
-from services.slidev_service import build_slidev
+
+# ================================================================
+# 日志配置
+# ================================================================
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("千禧梦")
 
 
 def create_app() -> Flask:
     """创建并配置 Flask 应用"""
     app = Flask(__name__)
 
-    # 只允许同源请求
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    # 只允许指定域名跨域
+    ALLOWED_ORIGINS = [
+        "https://bighomework.hunluan.space",
+        "https://bighomework.sixiang.tech",
+        "https://textdb.hunluan.space",
+    ]
+    CORS(app, resources={r"/api/*": {"origins": ALLOWED_ORIGINS}})
+
+    # ================================================================
+    # 简易速率限制（内存令牌桶，宽松配置）
+    # ================================================================
+    # 格式：{ip: {endpoint: [timestamps]}}
+    _rate_limit_store: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+    # 限制规则：(时间窗口秒, 最大请求数)
+    RATE_LIMITS = {
+        "/api/chat/stream":      (60, 30),   # 60秒内最多30次
+        "/api/chat/regenerate":  (60, 20),   # 60秒内最多20次
+        "/api/publish":          (60, 10),   # 60秒内最多10次
+        "/api/sessions/delete":  (60, 10),   # 60秒内最多10次
+        "/api/clear":            (60, 10),   # 60秒内最多10次
+        "_default":              (60, 60),   # 其他接口：60秒内最多60次
+    }
+
+    def rate_limit(f):
+        """速率限制装饰器"""
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            ip = request.remote_addr or "unknown"
+            endpoint = request.path
+            window, max_req = RATE_LIMITS.get(endpoint, RATE_LIMITS["_default"])
+
+            now = time.time()
+            # 清理过期记录
+            timestamps = _rate_limit_store[ip][endpoint]
+            _rate_limit_store[ip][endpoint] = [t for t in timestamps if now - t < window]
+
+            if len(_rate_limit_store[ip][endpoint]) >= max_req:
+                logger.warning(f"速率限制触发: ip={ip} endpoint={endpoint}")
+                return jsonify({"error": "请求过于频繁，请稍后再试"}), 429
+
+            _rate_limit_store[ip][endpoint].append(now)
+            return f(*args, **kwargs)
+        return decorated
 
     def sanitize_session_id(sid: str) -> str:
         """清理 session_id，只保留安全字符"""
@@ -47,6 +101,7 @@ def create_app() -> Flask:
     # ================================================================
 
     @app.route("/api/chat/stream", methods=["POST"])
+    @rate_limit
     def api_chat_stream():
         """流式聊天接口（SSE）"""
         data = request.get_json(silent=True) or {}
@@ -56,6 +111,8 @@ def create_app() -> Flask:
 
         if not content:
             return jsonify({"reply": "滴～信号为空……请再说一次？", "session_id": session_id})
+
+        logger.info(f"chat_stream: session={session_id} len={len(content)}")
 
         def generate():
             try:
@@ -75,6 +132,7 @@ def create_app() -> Flask:
         )
 
     @app.route("/api/chat/regenerate", methods=["POST"])
+    @rate_limit
     def api_chat_regenerate():
         """流式重新生成（SSE）— 删除最后一条回复并重新生成"""
         data = request.get_json(silent=True) or {}
@@ -83,6 +141,8 @@ def create_app() -> Flask:
 
         if not content:
             return jsonify({"reply": "滴～信号为空……请再说一次？", "session_id": session_id})
+
+        logger.info(f"regenerate: session={session_id}")
 
         def generate():
             try:
@@ -102,6 +162,7 @@ def create_app() -> Flask:
         )
 
     @app.route("/api/sessions", methods=["GET"])
+    @rate_limit
     def api_list_sessions():
         """列出所有会话"""
         sessions = chat_service.list_sessions()
@@ -112,15 +173,18 @@ def create_app() -> Flask:
         return jsonify(sessions)
 
     @app.route("/api/sessions/delete", methods=["POST"])
+    @rate_limit
     def api_delete_session():
         """删除一个会话"""
         data = request.get_json(silent=True) or {}
         session_id = sanitize_session_id((data.get("session_id") or "").strip())
         if session_id:
             chat_service.delete_session(session_id)
+            logger.info(f"delete_session: session={session_id}")
         return jsonify({"ok": True})
 
     @app.route("/api/sessions/rename", methods=["POST"])
+    @rate_limit
     def api_rename_session():
         """重命名一个会话"""
         data = request.get_json(silent=True) or {}
@@ -128,9 +192,11 @@ def create_app() -> Flask:
         title = (data.get("title") or "").strip()[:100]
         if session_id and title:
             chat_service.rename_session(session_id, title)
+            logger.info(f"rename_session: session={session_id} title={title}")
         return jsonify({"ok": True})
 
     @app.route("/api/sessions/<session_id>/messages", methods=["GET"])
+    @rate_limit
     def api_session_messages(session_id):
         """获取指定会话的消息列表"""
         from services.database import get_messages
@@ -140,6 +206,7 @@ def create_app() -> Flask:
         return jsonify({"messages": user_messages})
 
     @app.route("/api/messages/update", methods=["POST"])
+    @rate_limit
     def api_update_message():
         """更新消息内容（用于发布后追加 URL）"""
         from services.database import append_to_message, get_last_assistant_message_id
@@ -154,11 +221,13 @@ def create_app() -> Flask:
         return jsonify({"ok": True, "message_id": msg_id})
 
     @app.route("/api/clear", methods=["POST"])
+    @rate_limit
     def api_clear():
         """清空对话历史"""
         data = request.get_json(silent=True) or {}
         session_id = sanitize_session_id((data.get("session_id") or "").strip())
         chat_service.clear(session_id)
+        logger.info(f"clear: session={session_id}")
         return jsonify({"reply": "滴～记忆体已清空，梦境重启。"})
 
     # ================================================================
@@ -216,6 +285,7 @@ def create_app() -> Flask:
         return html
 
     @app.route("/api/publish", methods=["POST"])
+    @rate_limit
     def api_publish():
         """将内容发布到 textdb，返回可访问链接"""
         data = request.get_json(silent=True) or {}
@@ -228,14 +298,10 @@ def create_app() -> Flask:
         if pub_type == "page":
             content = repair_html(content)
             content = chat_service.repair_html(content)
-        elif pub_type == "ppt":
-            # Slidev Markdown → 单个 HTML
-            try:
-                content = build_slidev(content)
-            except Exception as e:
-                return jsonify({"error": f"PPT 构建失败: {str(e)}"}), 500
 
         key = f"qx_{pub_type}_{uuid.uuid4().hex[:8]}"
+
+        logger.info(f"publish: type={pub_type} key={key} content_len={len(content)}")
 
         try:
             req = urllib.request.Request(
@@ -247,6 +313,7 @@ def create_app() -> Flask:
             with urllib.request.urlopen(req, timeout=10) as resp:
                 pass
         except Exception as e:
+            logger.error(f"publish failed: {e}")
             return jsonify({"error": f"发布失败: {str(e)}"}), 502
 
         if pub_type == "doc":
@@ -254,6 +321,7 @@ def create_app() -> Flask:
         else:
             url = f"{TEXTDB_BASE}/p/{key}"
 
+        logger.info(f"publish ok: url={url}")
         return jsonify({"key": key, "url": url, "type": pub_type})
 
     return app
@@ -267,12 +335,12 @@ if __name__ == "__main__":
     Config.validate()
     app = create_app()
 
-    print("=" * 56)
-    print("  🤖  千禧梦 · 构成主义聊天")
-    print("=" * 56)
-    print(f"  🌐  访问地址  http://127.0.0.1:{Config.PORT}")
-    print(f"  🧠  模型      {Config.MODEL_NAME}")
-    print(f"  🎨  风格      构成主义 × 千禧年梦幻")
-    print("=" * 56)
+    logger.info("=" * 56)
+    logger.info("  🤖  千禧梦 · 构成主义聊天")
+    logger.info("=" * 56)
+    logger.info(f"  🌐  访问地址  http://127.0.0.1:{Config.PORT}")
+    logger.info(f"  🧠  模型      {Config.MODEL_NAME}")
+    logger.info(f"  🎨  风格      构成主义 × 千禧年梦幻")
+    logger.info("=" * 56)
 
     app.run(debug=Config.DEBUG, host='0.0.0.0', port=Config.PORT)

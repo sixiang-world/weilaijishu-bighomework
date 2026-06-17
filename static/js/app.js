@@ -6,7 +6,7 @@
 // ================================================================
 // 会话管理
 // ================================================================
-let currentSessionId = 'dream_' + Math.random().toString(36).substring(2, 11);
+let currentSessionId = 'dream_' + crypto.randomUUID();
 
 // 从 URL 读取 session_id（如 /chat/xxx）
 (function() {
@@ -713,7 +713,7 @@ async function switchSession(sessionId) {
 }
 
 async function newSession() {
-    currentSessionId = 'dream_' + Math.random().toString(36).substring(2, 11);
+    currentSessionId = 'dream_' + crypto.randomUUID();
     history.pushState({ sessionId: currentSessionId }, '', '/chat/' + currentSessionId);
     closeSidebar();
     showWelcome();
