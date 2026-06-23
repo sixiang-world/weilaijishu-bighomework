@@ -1825,5 +1825,5 @@ document.getElementById('imgUploadInput').addEventListener('change', async funct
 
 // ================================================================
 // PPT 生成功能（已接入 /api/ppt/generate 专用 API，由 sendMessage 统一调度）
-// @ppt 主题内容 → 通过 /api/chat/stream 由 AI 生成大纲
+// @ppt 主题内容 → 通过 /api/ppt/generate 由 AI 生成大纲（SSE 流式）
 // ================================================================
