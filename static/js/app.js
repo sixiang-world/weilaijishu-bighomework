@@ -55,6 +55,7 @@ const IMG_FILE_SVG = `<svg viewBox="0 0 24 24" fill="none"><rect x="2" y="3" wid
 const COMMANDS = [
     { cmd: 'doc',  label: '生成文档', icon: 'doc'  },
     { cmd: 'page', label: '生成网页', icon: 'page' },
+    { cmd: 'ppt',  label: '生成PPT大纲', icon: 'pptgen' },
 ];
 
 // 候选菜单状态
@@ -133,9 +134,9 @@ function selectCommand(cmd) {
     messageInput.setSelectionRange(messageInput.value.length, messageInput.value.length);
 }
 
-// 解析输入中的命令（@doc 内容 或 /page 内容）
+// 解析输入中的命令（@doc /page /ppt 内容）
 function parseCommand(text) {
-    const match = text.match(/^([@/])(doc|page)\s+(.+)$/);
+    const match = text.match(/^([@/])(doc|page|ppt)\s+(.+)$/);
     if (match) {
         return { prefix: match[1], command: match[2], content: match[3] };
     }
@@ -149,6 +150,8 @@ function resolveCommandContent(parsed) {
             return '请生成一篇完整的 Markdown 文档，主题是：' + parsed.content + '。直接输出 Markdown 内容，不要加任何标签或包裹。';
         case 'page':
             return '请生成一个完整的 HTML 网页，主题是：' + parsed.content + '。直接输出完整 HTML 代码，不要加任何标签或包裹。';
+        case 'ppt':
+            return '请生成一份 PPT 大纲，主题是：' + parsed.content + '。使用 Slidev Markdown 格式，每页用 --- 分隔，包含封面、目录、内容页和结尾页。只输出大纲内容。';
         default:
             return parsed.content;
     }
@@ -160,12 +163,13 @@ function toggleQuickCmd(cmd) {
     var val = messageInput.value;
     var btnDoc = document.getElementById('btnQuickDoc');
     var btnPage = document.getElementById('btnQuickPage');
+    var btnPpt = document.getElementById('btnQuickPpt');
     if (val.startsWith(prefix)) {
         // 第二下取消
         messageInput.value = val.slice(prefix.length);
     } else {
         // 检查是否有其他 @命令 前缀，替换之
-        var otherCmd = val.match(/^@(doc|page)\s*/);
+        var otherCmd = val.match(/^@(doc|page|ppt)\s*/);
         if (otherCmd) {
             messageInput.value = prefix + val.slice(otherCmd[0].length);
         } else {
@@ -175,6 +179,7 @@ function toggleQuickCmd(cmd) {
     // 更新按钮高亮状态
     btnDoc.classList.toggle('active', messageInput.value.startsWith('@doc '));
     btnPage.classList.toggle('active', messageInput.value.startsWith('@page '));
+    btnPpt.classList.toggle('active', messageInput.value.startsWith('@ppt '));
     messageInput.focus();
 }
 
@@ -191,8 +196,10 @@ messageInput.addEventListener('input', function() {
     // 同步快捷按钮高亮
     var btnDoc = document.getElementById('btnQuickDoc');
     var btnPage = document.getElementById('btnQuickPage');
+    var btnPpt = document.getElementById('btnQuickPpt');
     if (btnDoc) btnDoc.classList.toggle('active', val.startsWith('@doc '));
     if (btnPage) btnPage.classList.toggle('active', val.startsWith('@page '));
+    if (btnPpt) btnPpt.classList.toggle('active', val.startsWith('@ppt '));
 });
 
 messageInput.addEventListener('blur', function() {
@@ -1818,182 +1825,6 @@ document.getElementById('imgUploadInput').addEventListener('change', async funct
 });
 
 // ================================================================
-// PPT 生成功能
+// PPT 生成功能（已合并到 @ppt 命令系统中，由 sendMessage 统一处理）
+// @ppt 主题内容 → 通过 /api/chat/stream 由 AI 生成大纲
 // ================================================================
-async function generatePPT() {
-    // 检查输入框中是否有主题文字
-    let topic = messageInput.value.trim();
-    if (topic.startsWith('@ppt ') || topic.startsWith('/ppt ')) {
-        topic = topic.slice(5).trim();
-    }
-    if (!topic) {
-        topic = prompt('请输入 PPT 主题：');
-        if (!topic) return;
-    }
-
-    if (isLoading) return;
-    isLoading = true;
-
-    // 移除欢迎消息
-    const welcomeEl = document.getElementById('welcomeMessage');
-    if (welcomeEl) welcomeEl.remove();
-
-    // 添加用户消息
-    addMessage('@生成PPT ' + topic, 'user');
-    messageInput.value = '';
-    messageInput.focus();
-
-    setPetState('thinking');
-    showPetEmoji('thinking');
-    showLoading();
-
-    try {
-        const res = await fetch('/api/ppt/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                topic: topic,
-                session_id: currentSessionId
-            }),
-        });
-
-        removeLoading();
-
-        if (!res.ok) {
-            setPetState('idle');
-            showError('PPT 生成失败，请重试');
-            isLoading = false;
-            return;
-        }
-
-        setPetState('replying');
-
-        const now = new Date();
-        const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-
-        const msgDiv = document.createElement('div');
-        msgDiv.className = 'message robot';
-        msgDiv.innerHTML = '<div class="msg-avatar">' + ROBOT_SVG + '</div>'
-            + '<div class="msg-body">'
-            +   '<div class="msg-content streaming" id="streamingPpt"></div>'
-            +   '<div class="msg-actions">'
-            +     '<button class="msg-action-btn" onclick="copyMessage(this)">复制</button>'
-            +     '<span class="msg-time">' + timeStr + '</span>'
-            +   '</div>'
-            + '</div>';
-        chatContainer.appendChild(msgDiv);
-        const contentDiv = msgDiv.querySelector('.msg-content');
-
-        // 尝试流式解析
-        let fullMarkdown = '';
-        if (res.headers.get('content-type') && res.headers.get('content-type').includes('text/event-stream')) {
-            const reader = res.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = '';
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
-                for (const line of lines) {
-                    if (!line.startsWith('data: ')) continue;
-                    const payload = line.slice(6).trim();
-                    if (payload === '[DONE]') break;
-                    try {
-                        const parsed = JSON.parse(payload);
-                        if (parsed.token) {
-                            fullMarkdown += parsed.token;
-                            contentDiv.innerHTML = renderMarkdown(fullMarkdown);
-                            scrollToBottom();
-                        }
-                    } catch (_) {}
-                }
-            }
-        } else {
-            // 非流式响应
-            const data = await res.json();
-            fullMarkdown = data.markdown || '';
-            contentDiv.innerHTML = renderMarkdown(fullMarkdown);
-        }
-
-        contentDiv.classList.remove('streaming');
-
-        // 添加 PPT 主题标签 + Slidev 构建按钮
-        const topicBadge = '<div class="ppt-topic-badge">■ PPT: ' + escapeHtml(topic) + '</div>';
-        const buildBtnHtml = '<div class="ppt-build-area">'
-            + '<button class="ppt-build-btn" onclick="startSlidevBuild(\'' + encodeURIComponent(topic) + '\', this)">'
-            +   '<svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="14" height="10" rx="1" stroke="#F5F0E6" stroke-width="1.5"/><line x1="8" y1="1" x2="8" y2="11" stroke="#F5F0E6" stroke-width="1"/><line x1="1" y1="6" x2="15" y2="6" stroke="#F5F0E6" stroke-width="1"/><rect x="6" y="12" width="4" height="2" fill="#D62828"/></svg>'
-            + ' 构建 Slidev'
-            + '</button>'
-            + '</div>';
-
-        contentDiv.insertAdjacentHTML('beforeend', topicBadge + buildBtnHtml);
-        addCodeCopyButtons(msgDiv);
-
-        showPetEmoji('excited');
-        setTimeout(function() { setPetState('idle'); }, 1200);
-        isLoading = false;
-        await loadSessions();
-        updateRegenerateButtons();
-        scrollToBottom();
-
-    } catch (err) {
-        removeLoading();
-        setPetState('idle');
-        showError('PPT 生成出错：' + err.message);
-        isLoading = false;
-    }
-}
-
-// Slidev 构建入口
-async function startSlidevBuild(topicEncoded, btn) {
-    const topic = decodeURIComponent(topicEncoded);
-    btn.textContent = '构建中…';
-    btn.disabled = true;
-
-    try {
-        const res = await fetch('/api/ppt/build', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                topic: topic,
-                session_id: currentSessionId
-            }),
-        });
-
-        const data = await res.json();
-        if (data.success && data.url) {
-            // 添加构建完成卡片
-            const buildArea = btn.closest('.ppt-build-area');
-            if (buildArea) {
-                buildArea.innerHTML = '<div class="publish-card">'
-                    + '<div class="publish-card-icon">' + icon('ppt') + '</div>'
-                    + '<div class="publish-card-info">'
-                    +   '<div class="publish-card-label">PPT 已构建</div>'
-                    +   '<div class="publish-card-url">' + escapeHtml(data.url) + '</div>'
-                    + '</div>'
-                    + '<div class="publish-card-actions">'
-                    +   '<a href="' + data.url + '" target="_blank" class="publish-card-btn">打开预览</a>'
-                    +   '<button class="publish-card-btn" onclick="copyUrl(this, \'' + data.url + '\')">复制链接</button>'
-                    + '</div>'
-                    + '</div>';
-            }
-            showPetEmoji('excited');
-            setTimeout(function() { setPetState('idle'); }, 1200);
-        } else {
-            btn.textContent = '构建失败';
-            setTimeout(function() {
-                btn.textContent = '构建 Slidev';
-                btn.disabled = false;
-            }, 2000);
-        }
-    } catch (err) {
-        btn.textContent = '构建失败';
-        setTimeout(function() {
-            btn.textContent = '构建 Slidev';
-            btn.disabled = false;
-        }, 2000);
-    }
-}
