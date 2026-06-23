@@ -17,6 +17,7 @@ from collections import defaultdict
 
 from flask import Flask, request, jsonify, render_template, Response, stream_with_context
 from werkzeug.utils import secure_filename
+from openai import OpenAI
 from flask_cors import CORS
 
 from config import Config
@@ -464,7 +465,6 @@ def create_app() -> Flask:
         else:
             # 一次性返回
             try:
-                from openai import OpenAI
                 response = client.chat.completions.create(
                     model=Config.MODEL_NAME,
                     messages=[

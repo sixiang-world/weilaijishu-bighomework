@@ -1627,9 +1627,23 @@ function uploadDocument() {
     document.getElementById('docUploadInput').click();
 }
 
-// 上传图片
+// 上传图片（当前模型不支持，显示提示）
 function uploadImage() {
-    document.getElementById('imgUploadInput').click();
+    // 移除欢迎消息
+    const welcomeEl = document.getElementById('welcomeMessage');
+    if (welcomeEl) welcomeEl.remove();
+
+    // 添加一条机器人消息说明不支持
+    const now = new Date();
+    const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'message robot';
+    msgDiv.innerHTML = '<div class="msg-avatar">' + ROBOT_SVG + '</div>'
+        + '<div class="msg-body"><div class="msg-content">'
+        + '滴～ 当前模型暂不支持图片分析功能。请使用文档上传（PDF/Word/TXT）进行文件内容分析。'
+        + '</div><div class="msg-actions"><span class="msg-time">' + timeStr + '</span></div></div>';
+    chatContainer.appendChild(msgDiv);
+    scrollToBottom();
 }
 
 // 文档上传处理
@@ -1660,9 +1674,14 @@ document.getElementById('docUploadInput').addEventListener('change', async funct
 
         progressEl.remove();
 
+        let errMsg = '';
+        try {
+            const errData = await res.json();
+            errMsg = errData.error || errData.message || '';
+        } catch (_) {}
         if (!res.ok) {
             btn.classList.remove('loading');
-            showError('文档上传失败，请重试');
+            showError(errMsg || '文档上传失败，请重试');
             return;
         }
 
