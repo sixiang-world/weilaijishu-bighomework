@@ -20,7 +20,10 @@ class Config:
 
     # Flask
     DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
-    PORT = int(os.getenv("FLASK_PORT", "5000"))
+    try:
+        PORT = int(os.getenv("FLASK_PORT", "5000"))
+    except (ValueError, TypeError):
+        PORT = 5000
 
     # 文件上传
     UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", os.path.join(os.path.dirname(__file__), "uploads"))

@@ -9,6 +9,7 @@ import uuid
 import re
 import time
 import logging
+import logging.handlers
 import urllib.request
 import urllib.error
 from functools import wraps
@@ -34,8 +35,10 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler(
+        logging.handlers.RotatingFileHandler(
             os.path.join(_log_dir, "app.log"),
+            maxBytes=10*1024*1024,
+            backupCount=5,
             encoding="utf-8",
         ),
     ],
@@ -205,7 +208,7 @@ def create_app() -> Flask:
         """重命名一个会话"""
         data = request.get_json(silent=True) or {}
         session_id = sanitize_session_id((data.get("session_id") or "").strip())
-        title = (data.get("title") or "").strip()[:100]
+        title = re.sub("[<>&\"'/]", "", (data.get("title") or "").strip())[:100]
         if session_id and title:
             chat_service.rename_session(session_id, title)
             logger.info(f"rename_session: session={session_id} title={title}")
@@ -251,6 +254,7 @@ def create_app() -> Flask:
     # ================================================================
 
     @app.route("/api/upload/document", methods=["POST"])
+    @rate_limit
     def api_upload_document():
         """上传并分析文档（PDF/Word/TXT）"""
         # 检查是否有文件
@@ -324,6 +328,7 @@ def create_app() -> Flask:
     # ================================================================
 
     @app.route("/api/upload/image", methods=["POST"])
+    @rate_limit
     def api_upload_image():
         """上传并分析图片"""
         if "file" not in request.files:
@@ -413,8 +418,6 @@ def create_app() -> Flask:
             f"主题：{topic}"
         )
 
-        client = OpenAI(api_key=Config.API_KEY, base_url=Config.BASE_URL)
-
         # 判断是否要流式返回：如果 Accept 包含 text/event-stream 则流式
         wants_stream = "text/event-stream" in request.headers.get("Accept", "")
 
@@ -422,7 +425,7 @@ def create_app() -> Flask:
             def generate():
                 full_reply = ""
                 try:
-                    stream = client.chat.completions.create(
+                    stream = chat_service.client.chat.completions.create(
                         model=Config.MODEL_NAME,
                         messages=[
                             {"role": "system", "content": "你是 Slidev PPT 设计专家，只输出 Slidev Markdown 格式的内容。"},
@@ -463,7 +466,7 @@ def create_app() -> Flask:
         else:
             # 一次性返回
             try:
-                response = client.chat.completions.create(
+                response = chat_service.client.chat.completions.create(
                     model=Config.MODEL_NAME,
                     messages=[
                         {"role": "system", "content": "你是 Slidev PPT 设计专家，只输出 Slidev Markdown 格式的内容。"},

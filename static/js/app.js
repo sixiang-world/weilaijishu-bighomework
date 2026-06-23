@@ -1169,10 +1169,21 @@ async function streamRegenerate(userText) {
     btnSend.style.display = 'none';
 
     try {
-        const res = await fetch('/api/chat/regenerate', {
+        // @ppt 重新生成走专用 API
+        const parsedCmd = parseCommand(userText);
+        const isPptRegen = parsedCmd && parsedCmd.command === 'ppt';
+        const regenUrl = isPptRegen ? '/api/ppt/generate' : '/api/chat/regenerate';
+        const regenBody = isPptRegen
+            ? { topic: parsedCmd.content, session_id: currentSessionId }
+            : { content: userText, session_id: currentSessionId };
+        const regenHeaders = isPptRegen
+            ? { 'Accept': 'text/event-stream', 'Content-Type': 'application/json' }
+            : { 'Content-Type': 'application/json' };
+
+        const res = await fetch(regenUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: userText, session_id: currentSessionId }),
+            headers: regenHeaders,
+            body: JSON.stringify(regenBody),
             signal: abortController.signal,
         });
 
@@ -1233,12 +1244,12 @@ async function streamRegenerate(userText) {
             }
         }
 
-	        contentDiv.classList.remove('streaming');
-	        contentDiv.innerHTML = renderMarkdown(fullReply);
-	        addCodeCopyButtons(msgDiv);
-	        detectAndPublish(contentDiv, fullReply);
+            contentDiv.classList.remove('streaming');
+            contentDiv.innerHTML = renderMarkdown(fullReply);
+            addCodeCopyButtons(msgDiv);
+            detectAndPublish(contentDiv, fullReply);
 
-	        const emojiKeys = ['happy', 'surprise', 'excited', 'cool'];
+            const emojiKeys = ['happy', 'surprise', 'excited', 'cool'];
         showPetEmoji(emojiKeys[Math.floor(Math.random() * emojiKeys.length)]);
         setTimeout(() => setPetState('idle'), 800);
         hideStopButton();
@@ -1299,16 +1310,17 @@ function renderPublishCard(url, type) {
     const iconMap = { doc: 'doc', page: 'page' };
     const label = labels[type] || '页面已生成';
     const iconSvg = icon(iconMap[type] || 'page');
+    const safeUrl = escapeHtml(url);
 
     return '<div class="publish-card" data-type="' + type + '">' +
         '<div class="publish-card-icon">' + iconSvg + '</div>' +
         '<div class="publish-card-info">' +
             '<div class="publish-card-label">' + label + '</div>' +
-            '<div class="publish-card-url">' + url + '</div>' +
+            '<div class="publish-card-url">' + safeUrl + '</div>' +
         '</div>' +
         '<div class="publish-card-actions">' +
-            '<a href="' + url + '" target="_blank" class="publish-card-btn">打开预览</a>' +
-            '<button class="publish-card-btn" onclick="copyUrl(this, \'' + url + '\')">复制链接</button>' +
+            '<a href="' + safeUrl + '" target="_blank" class="publish-card-btn">打开预览</a>' +
+            '<button class="publish-card-btn" onclick="copyUrl(this, \'' + safeUrl + '\')">复制链接</button>' +
         '</div>' +
     '</div>';
 }
