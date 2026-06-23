@@ -899,7 +899,18 @@ async function sendMessage() {
     btnSend.style.display = 'none';
 
     try {
-        const res = await fetch('/api/chat/stream', {
+        // @ppt 命令走专用 PPT 生成 API
+        const isPpt = parsed && parsed.command === 'ppt';
+        const apiUrl = isPpt ? '/api/ppt/generate' : '/api/chat/stream';
+        const fetchOpts = isPpt ? {
+            method: 'POST',
+            headers: { 'Accept': 'text/event-stream', 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                topic: parsed.content,
+                session_id: currentSessionId,
+            }),
+            signal: abortController.signal,
+        } : {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -908,7 +919,9 @@ async function sendMessage() {
                 session_id: currentSessionId,
             }),
             signal: abortController.signal,
-        });
+        };
+
+        const res = await fetch(apiUrl, fetchOpts);
 
         if (!res.ok) {
             removeLoading();
@@ -1634,23 +1647,9 @@ function uploadDocument() {
     document.getElementById('docUploadInput').click();
 }
 
-// 上传图片（当前模型不支持，显示提示）
+// 上传图片
 function uploadImage() {
-    // 移除欢迎消息
-    const welcomeEl = document.getElementById('welcomeMessage');
-    if (welcomeEl) welcomeEl.remove();
-
-    // 添加一条机器人消息说明不支持
-    const now = new Date();
-    const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-    const msgDiv = document.createElement('div');
-    msgDiv.className = 'message robot';
-    msgDiv.innerHTML = '<div class="msg-avatar">' + ROBOT_SVG + '</div>'
-        + '<div class="msg-body"><div class="msg-content">'
-        + '滴～ 当前模型暂不支持图片分析功能。请使用文档上传（PDF/Word/TXT）进行文件内容分析。'
-        + '</div><div class="msg-actions"><span class="msg-time">' + timeStr + '</span></div></div>';
-    chatContainer.appendChild(msgDiv);
-    scrollToBottom();
+    document.getElementById('imgUploadInput').click();
 }
 
 // 文档上传处理
@@ -1825,6 +1824,6 @@ document.getElementById('imgUploadInput').addEventListener('change', async funct
 });
 
 // ================================================================
-// PPT 生成功能（已合并到 @ppt 命令系统中，由 sendMessage 统一处理）
+// PPT 生成功能（已接入 /api/ppt/generate 专用 API，由 sendMessage 统一调度）
 // @ppt 主题内容 → 通过 /api/chat/stream 由 AI 生成大纲
 // ================================================================

@@ -7,7 +7,6 @@ import json
 import os
 import uuid
 import re
-import os
 import time
 import logging
 import urllib.request
@@ -43,7 +42,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger("千禧梦")
 
-from services.slidev_service import build_slidev
 from services.document_service import extract_text, analyze_document, get_file_ext
 from services.image_service import encode_image_to_base64, analyze_image, is_allowed_image
 
@@ -498,63 +496,6 @@ def create_app() -> Flask:
                 return jsonify({"error": f"PPT 生成失败: {str(e)}"}), 500
 
     # ================================================================
-    # 路由：PPT 构建（Slidev markdown → 自包含 HTML → 发布到 textdb）
-    # ================================================================
-
-    @app.route("/api/ppt/build", methods=["POST"])
-    def api_ppt_build():
-        """将已生成的 PPT Markdown 构建为可访问的 HTML 页面"""
-        data = request.get_json(silent=True) or {}
-        topic = (data.get("topic") or "").strip()
-        session_id = sanitize_session_id((data.get("session_id") or "").strip())
-
-        if not topic:
-            return jsonify({"error": "请提供 PPT 主题"}), 400
-
-        # 从会话历史中查找最后一条 assistant 消息（应为 Slidev Markdown）
-        markdown = ""
-        if session_id:
-            from services.database import get_messages
-            msgs = get_messages(session_id)
-            for msg in reversed(msgs):
-                if msg["role"] == "assistant" and "---" in msg["content"]:
-                    markdown = msg["content"]
-                    break
-
-        if not markdown:
-            return jsonify({"error": "未找到 PPT 内容，请先生成 PPT"}), 400
-
-        try:
-            # 1. 构建为单个自包含 HTML
-            html = build_slidev(markdown)
-
-            # 2. 发布到 textdb
-            import uuid, urllib.request
-            key = f"ppt_{uuid.uuid4().hex[:8]}"
-            textdb_url = f"https://textdb.hunluan.space/update/"
-            req = urllib.request.Request(
-                textdb_url,
-                data=json.dumps({"key": key, "value": html}).encode("utf-8"),
-                headers={"Content-Type": "application/json"},
-                method="POST",
-            )
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                pass
-
-            view_url = f"https://textdb.hunluan.space/p/{key}"
-
-            return jsonify({
-                "success": True,
-                "topic": topic,
-                "url": view_url,
-            })
-        except Exception as e:
-            return jsonify({"error": f"PPT 构建失败: {str(e)}"}), 500
-
-    # ================================================================
-    # 路由：发布到 textdb
-    # ================================================================
-
     TEXTDB_BASE = "https://textdb.hunluan.space"
 
     def repair_html(html):

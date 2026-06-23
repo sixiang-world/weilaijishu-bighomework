@@ -23,3 +23,8 @@ logs/
 Thumbs.db
 .venv/
 .codex
+
+# Task files & uploads
+uploads/
+.claude-task.md
+.codex-task.md
