@@ -22,6 +22,14 @@ class Config:
     DEBUG = os.getenv("FLASK_DEBUG", "false").lower() == "true"
     PORT = int(os.getenv("FLASK_PORT", "5000"))
 
+    # 文件上传
+    UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", os.path.join(os.path.dirname(__file__), "uploads"))
+    MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", 16 * 1024 * 1024))  # 16MB
+    ALLOWED_EXTENSIONS = {'.pdf', '.docx', '.txt', '.jpg', '.jpeg', '.png', '.webp', '.gif'}
+
+    # 视觉模型
+    VISION_MODEL = os.getenv("VISION_MODEL", "moonshot-v1-8k-vision-preview")
+
     @classmethod
     def validate(cls):
         """验证必要配置是否存在"""

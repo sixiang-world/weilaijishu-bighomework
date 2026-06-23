@@ -44,6 +44,9 @@ marked.setOptions({
 // SVG 图标模板
 const ROBOT_SVG = `<svg viewBox="0 0 40 40" fill="none"><line x1="20" y1="2" x2="20" y2="10" stroke="#F5F0E6" stroke-width="2" stroke-linecap="square"/><circle cx="20" cy="2" r="2" fill="#F5F0E6"/><rect x="6" y="10" width="28" height="22" fill="none" stroke="#F5F0E6" stroke-width="2"/><rect x="12" y="16" width="6" height="6" fill="#F5F0E6"/><rect x="22" y="16" width="6" height="6" fill="#F5F0E6"/><line x1="14" y1="28" x2="26" y2="28" stroke="#F5F0E6" stroke-width="2" stroke-linecap="square"/><rect x="3" y="14" width="5" height="8" fill="none" stroke="#F5F0E6" stroke-width="2"/><rect x="32" y="14" width="5" height="8" fill="none" stroke="#F5F0E6" stroke-width="2"/></svg>`;
 const USER_SVG = `<svg viewBox="0 0 40 40" fill="none"><circle cx="20" cy="12" r="8" fill="none" stroke="#F5F0E6" stroke-width="2.5"/><rect x="8" y="24" width="24" height="14" fill="none" stroke="#F5F0E6" stroke-width="2.5"/><line x1="4" y1="38" x2="14" y2="28" stroke="#F5F0E6" stroke-width="2" stroke-linecap="square"/><line x1="36" y1="38" x2="26" y2="28" stroke="#F5F0E6" stroke-width="2" stroke-linecap="square"/></svg>`;
+// 扩展 SVG 图标
+const FILE_SVG = `<svg viewBox="0 0 24 24" fill="none"><path d="M4 2h10l6 6v14H4V2z" fill="#1A1A1A" stroke="#D62828" stroke-width="2"/><path d="M14 2v6h6" fill="none" stroke="#D62828" stroke-width="2"/><line x1="8" y1="11" x2="16" y2="11" stroke="#F5F0E6" stroke-width="1.5"/><line x1="8" y1="15" x2="16" y2="15" stroke="#F5F0E6" stroke-width="1" opacity="0.4"/><line x1="8" y1="18" x2="13" y2="18" stroke="#F5F0E6" stroke-width="1" opacity="0.4"/></svg>`;
+const IMG_FILE_SVG = `<svg viewBox="0 0 24 24" fill="none"><rect x="2" y="3" width="20" height="18" rx="2" fill="#1A1A1A" stroke="#D62828" stroke-width="2"/><circle cx="8" cy="9" r="2.5" fill="#D62828"/><path d="M2 17l6-5 5 5 4-4 5 5" stroke="#F5F0E6" stroke-width="2" stroke-linecap="square"/></svg>`;
 
 // ================================================================
 // 命令系统 — @/ 前缀触发内容生成
@@ -462,6 +465,14 @@ const ICONS = {
     page: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none"><circle cx="12" cy="12" r="9" stroke="#1A1A1A" stroke-width="2"/><ellipse cx="12" cy="12" rx="4" ry="9" stroke="#1A1A1A" stroke-width="1.5"/><line x1="3" y1="12" x2="21" y2="12" stroke="#1A1A1A" stroke-width="1.5"/><circle cx="12" cy="12" r="2" fill="#D62828"/></svg>`,
     // 加载：旋转方块
     loading: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none"><rect x="5" y="5" width="14" height="14" rx="2" fill="none" stroke="#D62828" stroke-width="2" stroke-dasharray="6 4"><animateTransform attributeName="transform" type="rotate" values="0 12 12;360 12 12" dur="2s" repeatCount="indefinite"/></rect></svg>`,
+    // 文件上传
+    docupload: `<svg viewBox="0 0 22 22" fill="none"><path d="M11 2v12a4 4 0 0 0 8 0V7" stroke="#F5F0E6" stroke-width="2" stroke-linecap="square"/><path d="M6 7v8a6 6 0 0 0 12 0V5" stroke="#F5F0E6" stroke-width="2" stroke-linecap="square"/><line x1="11" y1="2" x2="11" y2="4" stroke="#D62828" stroke-width="2" stroke-linecap="square"/></svg>`,
+    // 图片上传
+    imgupload: `<svg viewBox="0 0 22 22" fill="none"><rect x="2" y="4" width="18" height="14" rx="2" stroke="#F5F0E6" stroke-width="2"/><circle cx="8" cy="9" r="2" fill="#D62828"/><path d="M2 16l6-5 5 5 3-3 5 5" stroke="#F5F0E6" stroke-width="2" stroke-linecap="square"/></svg>`,
+    // 通用文件
+    file: `<svg viewBox="0 0 24 24" fill="none"><path d="M4 2h10l6 6v14H4V2z" fill="#1A1A1A" stroke="#D62828" stroke-width="2"/><path d="M14 2v6h6" fill="none" stroke="#D62828" stroke-width="2"/><line x1="8" y1="11" x2="16" y2="11" stroke="#F5F0E6" stroke-width="1.5"/></svg>`,
+    // PPT 生成
+    pptgen: `<svg viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="20" height="14" rx="2" fill="#1A1A1A" stroke="#D62828" stroke-width="2"/><line x1="12" y1="2" x2="12" y2="16" stroke="#F5F0E6" stroke-width="1.5"/><line x1="2" y1="9" x2="22" y2="9" stroke="#F5F0E6" stroke-width="1.5"/><rect x="9" y="18" width="6" height="3" fill="#D62828"/><rect x="8" y="21" width="8" height="1" fill="#F5F0E6"/></svg>`,
 };
 
 function icon(name) {
@@ -1606,3 +1617,364 @@ loadSessions().then(function() {
     renderSessionList();
 });
 messageInput.focus();
+
+// ================================================================
+// 文件上传功能 — 文档 & 图片
+// ================================================================
+
+// 上传文档
+function uploadDocument() {
+    document.getElementById('docUploadInput').click();
+}
+
+// 上传图片
+function uploadImage() {
+    document.getElementById('imgUploadInput').click();
+}
+
+// 文档上传处理
+document.getElementById('docUploadInput').addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const btn = document.getElementById('btnUploadDoc');
+    btn.classList.add('loading');
+
+    // 显示上传进度
+    const progressEl = document.createElement('div');
+    progressEl.className = 'upload-progress';
+    progressEl.innerHTML = '<div class="upload-progress-text">■ 上传中 ' + escapeHtml(file.name) + '</div><div class="upload-progress-bar"></div>';
+    const inputZone = document.querySelector('.input-zone-inner');
+    inputZone.parentNode.insertBefore(progressEl, inputZone.nextSibling);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('session_id', currentSessionId);
+    formData.append('action', 'summarize');
+
+    try {
+        const res = await fetch('/api/upload/document', {
+            method: 'POST',
+            body: formData,
+        });
+
+        progressEl.remove();
+
+        if (!res.ok) {
+            btn.classList.remove('loading');
+            showError('文档上传失败，请重试');
+            return;
+        }
+
+        const data = await res.json();
+
+        // 移除欢迎消息
+        const welcomeEl = document.getElementById('welcomeMessage');
+        if (welcomeEl) welcomeEl.remove();
+
+        // 添加用户消息（文件名）
+        const now = new Date();
+        const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+        const userMsg = document.createElement('div');
+        userMsg.className = 'message user';
+        userMsg.innerHTML = '<div class="msg-avatar">' + USER_SVG + '</div><div class="msg-body"><div class="msg-content">📎 ' + escapeHtml(file.name) + '</div><div class="msg-actions"><span class="msg-time">' + timeStr + '</span></div></div>';
+        chatContainer.appendChild(userMsg);
+
+        // 添加机器人分析结果
+        const robotMsg = document.createElement('div');
+        robotMsg.className = 'message robot';
+        robotMsg.innerHTML = '<div class="msg-avatar">' + ROBOT_SVG + '</div><div class="msg-body"><div class="msg-content" id="fileAnalysisMsg"></div><div class="msg-actions"><button class="msg-action-btn" onclick="copyMessage(this)">复制</button><span class="msg-time">' + timeStr + '</span></div></div>';
+        chatContainer.appendChild(robotMsg);
+        const contentDiv = robotMsg.querySelector('.msg-content');
+
+        // 文件信息前缀
+        const ext = file.name.split('.').pop().toUpperCase();
+        const prefixHtml = '<div class="file-analysis-msg">'
+            + '<div class="file-analysis-icon">' + FILE_SVG + '</div>'
+            + '<div class="file-analysis-body">'
+            +   '<div class="file-analysis-header">'
+            +     '<span class="file-analysis-name">' + escapeHtml(file.name) + '</span>'
+            +     '<span class="file-analysis-type">' + ext + '</span>'
+            +   '</div>'
+            + '</div></div>';
+
+        contentDiv.innerHTML = prefixHtml + '<div style="margin-top:6px">' + renderMarkdown(data.analysis || '分析完成。') + '</div>';
+        addCodeCopyButtons(robotMsg);
+
+        // 更新会话列表
+        await loadSessions();
+        updateRegenerateButtons();
+        scrollToBottom();
+
+        btn.classList.remove('loading');
+    } catch (err) {
+        progressEl.remove();
+        btn.classList.remove('loading');
+        showError('文档上传出错：' + err.message);
+    }
+
+    this.value = '';
+});
+
+// 图片上传处理
+document.getElementById('imgUploadInput').addEventListener('change', async function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const btn = document.getElementById('btnUploadImg');
+    btn.classList.add('loading');
+
+    // 创建本地缩略图预览
+    const previewUrl = URL.createObjectURL(file);
+
+    // 显示上传进度
+    const progressEl = document.createElement('div');
+    progressEl.className = 'upload-progress';
+    progressEl.innerHTML = '<div class="upload-progress-text">■ 上传中 ' + escapeHtml(file.name) + '</div><div class="upload-progress-bar"></div>';
+    const inputZone = document.querySelector('.input-zone-inner');
+    inputZone.parentNode.insertBefore(progressEl, inputZone.nextSibling);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('session_id', currentSessionId);
+
+    try {
+        const res = await fetch('/api/upload/image', {
+            method: 'POST',
+            body: formData,
+        });
+
+        progressEl.remove();
+
+        if (!res.ok) {
+            btn.classList.remove('loading');
+            URL.revokeObjectURL(previewUrl);
+            showError('图片上传失败，请重试');
+            return;
+        }
+
+        const data = await res.json();
+
+        // 移除欢迎消息
+        const welcomeEl = document.getElementById('welcomeMessage');
+        if (welcomeEl) welcomeEl.remove();
+
+        const now = new Date();
+        const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+        // 添加用户消息（图片缩略图）
+        const userMsg = document.createElement('div');
+        userMsg.className = 'message user';
+        userMsg.innerHTML = '<div class="msg-avatar">' + USER_SVG + '</div><div class="msg-body"><div class="msg-content"><div class="image-preview-wrap"><img src="' + previewUrl + '" alt="' + escapeHtml(file.name) + '"></div></div><div class="msg-actions"><span class="msg-time">' + timeStr + '</span></div></div>';
+        chatContainer.appendChild(userMsg);
+
+        // 添加机器人分析结果
+        const robotMsg = document.createElement('div');
+        robotMsg.className = 'message robot';
+        robotMsg.innerHTML = '<div class="msg-avatar">' + ROBOT_SVG + '</div><div class="msg-body"><div class="msg-content" id="imgAnalysisMsg"></div><div class="msg-actions"><button class="msg-action-btn" onclick="copyMessage(this)">复制</button><span class="msg-time">' + timeStr + '</span></div></div>';
+        chatContainer.appendChild(robotMsg);
+        const contentDiv = robotMsg.querySelector('.msg-content');
+
+        // 图片分析结果渲染
+        const imgLabelHtml = '<div class="image-analysis-label">' + IMG_FILE_SVG + '<span>' + escapeHtml(file.name) + '</span></div>';
+        contentDiv.innerHTML = imgLabelHtml + '<div>' + renderMarkdown(data.analysis || '图片分析完成。') + '</div>';
+        addCodeCopyButtons(robotMsg);
+
+        // 清理 object URL
+        setTimeout(function() { URL.revokeObjectURL(previewUrl); }, 5000);
+
+        await loadSessions();
+        updateRegenerateButtons();
+        scrollToBottom();
+
+        btn.classList.remove('loading');
+    } catch (err) {
+        progressEl.remove();
+        btn.classList.remove('loading');
+        URL.revokeObjectURL(previewUrl);
+        showError('图片上传出错：' + err.message);
+    }
+
+    this.value = '';
+});
+
+// ================================================================
+// PPT 生成功能
+// ================================================================
+async function generatePPT() {
+    // 检查输入框中是否有主题文字
+    let topic = messageInput.value.trim();
+    if (topic.startsWith('@ppt ') || topic.startsWith('/ppt ')) {
+        topic = topic.slice(5).trim();
+    }
+    if (!topic) {
+        topic = prompt('请输入 PPT 主题：');
+        if (!topic) return;
+    }
+
+    if (isLoading) return;
+    isLoading = true;
+
+    // 移除欢迎消息
+    const welcomeEl = document.getElementById('welcomeMessage');
+    if (welcomeEl) welcomeEl.remove();
+
+    // 添加用户消息
+    addMessage('@生成PPT ' + topic, 'user');
+    messageInput.value = '';
+    messageInput.focus();
+
+    setPetState('thinking');
+    showPetEmoji('thinking');
+    showLoading();
+
+    try {
+        const res = await fetch('/api/ppt/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                topic: topic,
+                session_id: currentSessionId
+            }),
+        });
+
+        removeLoading();
+
+        if (!res.ok) {
+            setPetState('idle');
+            showError('PPT 生成失败，请重试');
+            isLoading = false;
+            return;
+        }
+
+        setPetState('replying');
+
+        const now = new Date();
+        const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'message robot';
+        msgDiv.innerHTML = '<div class="msg-avatar">' + ROBOT_SVG + '</div>'
+            + '<div class="msg-body">'
+            +   '<div class="msg-content streaming" id="streamingPpt"></div>'
+            +   '<div class="msg-actions">'
+            +     '<button class="msg-action-btn" onclick="copyMessage(this)">复制</button>'
+            +     '<span class="msg-time">' + timeStr + '</span>'
+            +   '</div>'
+            + '</div>';
+        chatContainer.appendChild(msgDiv);
+        const contentDiv = msgDiv.querySelector('.msg-content');
+
+        // 尝试流式解析
+        let fullMarkdown = '';
+        if (res.headers.get('content-type') && res.headers.get('content-type').includes('text/event-stream')) {
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+                    const payload = line.slice(6).trim();
+                    if (payload === '[DONE]') break;
+                    try {
+                        const parsed = JSON.parse(payload);
+                        if (parsed.token) {
+                            fullMarkdown += parsed.token;
+                            contentDiv.innerHTML = renderMarkdown(fullMarkdown);
+                            scrollToBottom();
+                        }
+                    } catch (_) {}
+                }
+            }
+        } else {
+            // 非流式响应
+            const data = await res.json();
+            fullMarkdown = data.markdown || '';
+            contentDiv.innerHTML = renderMarkdown(fullMarkdown);
+        }
+
+        contentDiv.classList.remove('streaming');
+
+        // 添加 PPT 主题标签 + Slidev 构建按钮
+        const topicBadge = '<div class="ppt-topic-badge">■ PPT: ' + escapeHtml(topic) + '</div>';
+        const buildBtnHtml = '<div class="ppt-build-area">'
+            + '<button class="ppt-build-btn" onclick="startSlidevBuild(\'' + encodeURIComponent(topic) + '\', this)">'
+            +   '<svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="14" height="10" rx="1" stroke="#F5F0E6" stroke-width="1.5"/><line x1="8" y1="1" x2="8" y2="11" stroke="#F5F0E6" stroke-width="1"/><line x1="1" y1="6" x2="15" y2="6" stroke="#F5F0E6" stroke-width="1"/><rect x="6" y="12" width="4" height="2" fill="#D62828"/></svg>'
+            + ' 构建 Slidev'
+            + '</button>'
+            + '</div>';
+
+        contentDiv.insertAdjacentHTML('beforeend', topicBadge + buildBtnHtml);
+        addCodeCopyButtons(msgDiv);
+
+        showPetEmoji('excited');
+        setTimeout(function() { setPetState('idle'); }, 1200);
+        isLoading = false;
+        await loadSessions();
+        updateRegenerateButtons();
+        scrollToBottom();
+
+    } catch (err) {
+        removeLoading();
+        setPetState('idle');
+        showError('PPT 生成出错：' + err.message);
+        isLoading = false;
+    }
+}
+
+// Slidev 构建入口
+async function startSlidevBuild(topicEncoded, btn) {
+    const topic = decodeURIComponent(topicEncoded);
+    btn.textContent = '构建中…';
+    btn.disabled = true;
+
+    try {
+        const res = await fetch('/api/ppt/build', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                topic: topic,
+                session_id: currentSessionId
+            }),
+        });
+
+        const data = await res.json();
+        if (data.success && data.url) {
+            // 添加构建完成卡片
+            const buildArea = btn.closest('.ppt-build-area');
+            if (buildArea) {
+                buildArea.innerHTML = '<div class="publish-card">'
+                    + '<div class="publish-card-icon">' + icon('ppt') + '</div>'
+                    + '<div class="publish-card-info">'
+                    +   '<div class="publish-card-label">PPT 已构建</div>'
+                    +   '<div class="publish-card-url">' + escapeHtml(data.url) + '</div>'
+                    + '</div>'
+                    + '<div class="publish-card-actions">'
+                    +   '<a href="' + data.url + '" target="_blank" class="publish-card-btn">打开预览</a>'
+                    +   '<button class="publish-card-btn" onclick="copyUrl(this, \'' + data.url + '\')">复制链接</button>'
+                    + '</div>'
+                    + '</div>';
+            }
+            showPetEmoji('excited');
+            setTimeout(function() { setPetState('idle'); }, 1200);
+        } else {
+            btn.textContent = '构建失败';
+            setTimeout(function() {
+                btn.textContent = '构建 Slidev';
+                btn.disabled = false;
+            }, 2000);
+        }
+    } catch (err) {
+        btn.textContent = '构建失败';
+        setTimeout(function() {
+            btn.textContent = '构建 Slidev';
+            btn.disabled = false;
+        }, 2000);
+    }
+}

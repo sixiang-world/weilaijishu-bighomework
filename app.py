@@ -4,6 +4,7 @@
 """
 
 import json
+import os
 import uuid
 import re
 import os
@@ -15,6 +16,7 @@ from functools import wraps
 from collections import defaultdict
 
 from flask import Flask, request, jsonify, render_template, Response, stream_with_context
+from werkzeug.utils import secure_filename
 from flask_cors import CORS
 
 from config import Config
@@ -39,6 +41,10 @@ logging.basicConfig(
     ],
 )
 logger = logging.getLogger("千禧梦")
+
+from services.slidev_service import build_slidev
+from services.document_service import extract_text, analyze_document, get_file_ext
+from services.image_service import encode_image_to_base64, analyze_image, is_allowed_image
 
 
 def create_app() -> Flask:
@@ -240,6 +246,310 @@ def create_app() -> Flask:
         chat_service.clear(session_id)
         logger.info(f"clear: session={session_id}")
         return jsonify({"reply": "滴～记忆体已清空，梦境重启。"})
+
+    # ================================================================
+    # 路由：文档上传与分析
+    # ================================================================
+
+    @app.route("/api/upload/document", methods=["POST"])
+    def api_upload_document():
+        """上传并分析文档（PDF/Word/TXT）"""
+        # 检查是否有文件
+        if "file" not in request.files:
+            return jsonify({"error": "未找到文件，请使用字段名 'file'"}), 400
+
+        file = request.files["file"]
+        if not file or file.filename == "":
+            return jsonify({"error": "文件名为空"}), 400
+
+        filename = secure_filename(file.filename)
+        ext = get_file_ext(filename)
+        if ext not in Config.ALLOWED_EXTENSIONS or ext in {".jpg", ".jpeg", ".png", ".webp", ".gif"}:
+            return jsonify({"error": f"不支持的文件格式: {ext}，仅支持 PDF/DOCX/TXT"}), 400
+
+        # 获取可选参数
+        session_id = sanitize_session_id((request.form.get("session_id") or "").strip())
+        action = (request.form.get("action") or "summarize").strip()
+        question = (request.form.get("question") or "").strip()
+
+        # 保存文件到临时目录
+        os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
+        safe_name = f"{uuid.uuid4().hex}{ext}"
+        file_path = os.path.join(Config.UPLOAD_FOLDER, safe_name)
+
+        try:
+            file.save(file_path)
+
+            # 1. 提取文本
+            text = extract_text(file_path, filename)
+
+            # 2. AI 分析
+            analysis = analyze_document(text, action=action, question=question)
+
+            # 3. 如果提供了 session_id，将结果保存到会话历史中
+            if session_id:
+                from services.database import add_message, session_exists, create_session
+                if not session_exists(session_id):
+                    create_session(session_id)
+                # 将用户上传文档的动作记录为用户消息
+                upload_msg = f"[上传文档] {filename}\n\n文档内容摘要（前500字符）：\n{text[:500]}"
+                if action == "qa" and question:
+                    upload_msg += f"\n\n用户问题：{question}"
+                add_message(session_id, "user", upload_msg)
+                # 将分析结果记录为 assistant 消息
+                add_message(session_id, "assistant", analysis)
+
+            return jsonify({
+                "success": True,
+                "filename": filename,
+                "analysis": analysis,
+                "session_id": session_id,
+            })
+
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except RuntimeError as e:
+            return jsonify({"error": str(e)}), 500
+        except Exception as e:
+            return jsonify({"error": f"文档处理失败: {str(e)}"}), 500
+        finally:
+            # 清理临时文件
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except Exception:
+                pass
+
+    # ================================================================
+    # 路由：图片上传与分析
+    # ================================================================
+
+    @app.route("/api/upload/image", methods=["POST"])
+    def api_upload_image():
+        """上传并分析图片"""
+        if "file" not in request.files:
+            return jsonify({"error": "未找到文件，请使用字段名 'file'"}), 400
+
+        file = request.files["file"]
+        if not file or file.filename == "":
+            return jsonify({"error": "文件名为空"}), 400
+
+        filename = secure_filename(file.filename)
+        ext = get_file_ext(filename)
+        if not is_allowed_image(filename):
+            return jsonify({"error": f"不支持的图片格式: {ext}，仅支持 JPG/PNG/WEBP/GIF"}), 400
+
+        # 获取可选参数
+        session_id = sanitize_session_id((request.form.get("session_id") or "").strip())
+
+        # 保存文件到临时目录
+        os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
+        safe_name = f"{uuid.uuid4().hex}{ext}"
+        file_path = os.path.join(Config.UPLOAD_FOLDER, safe_name)
+
+        try:
+            file.save(file_path)
+
+            # 1. 编码为 base64 data URL
+            data_url = encode_image_to_base64(file_path)
+
+            # 2. AI 视觉分析
+            analysis = analyze_image(data_url, filename)
+
+            # 3. 如果提供了 session_id，将结果保存到会话历史中
+            if session_id:
+                from services.database import add_message, session_exists, create_session
+                if not session_exists(session_id):
+                    create_session(session_id)
+                add_message(session_id, "user", f"[上传图片] {filename}")
+                add_message(session_id, "assistant", analysis)
+
+            return jsonify({
+                "success": True,
+                "filename": filename,
+                "analysis": analysis,
+                "session_id": session_id,
+            })
+
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+        except RuntimeError as e:
+            return jsonify({"error": str(e)}), 500
+        except Exception as e:
+            return jsonify({"error": f"图片处理失败: {str(e)}"}), 500
+        finally:
+            # 清理临时文件
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except Exception:
+                pass
+
+    # ================================================================
+    # 路由：PPT 生成（SSE 流式）
+    # ================================================================
+
+    @app.route("/api/ppt/generate", methods=["POST"])
+    def api_ppt_generate():
+        """生成 Slidev Markdown 格式的 PPT（SSE 流式或一次性返回）"""
+        data = request.get_json(silent=True) or {}
+        topic = (data.get("topic") or "").strip()
+        session_id = sanitize_session_id((data.get("session_id") or "").strip())
+
+        if not topic:
+            return jsonify({"error": "请提供 PPT 主题（topic）"}), 400
+
+        ppt_prompt = (
+            "你是一个 PPT 设计专家。请根据以下主题，生成一份 Slidev 格式的演示文稿 Markdown。\n\n"
+            "要求：\n"
+            "1. 使用 Slidev 的 Markdown 格式，每页用 `---` 分隔\n"
+            "2. 第一页是封面，包含标题和副标题\n"
+            "3. 内容页要有层次结构，使用 ## / ### 标题\n"
+            "4. 每页内容简洁精炼，适合演讲展示\n"
+            "5. 可以使用列表、表格、引用等 Markdown 元素\n"
+            "6. 建议 6-10 页\n"
+            "7. 风格要和「千禧年构成主义」美学相关\n"
+            "8. 输出的内容应该是完整的、可直接使用的 Slidev Markdown\n"
+            "9. 不要加额外的解释文字，直接输出 Markdown\n\n"
+            f"主题：{topic}"
+        )
+
+        client = OpenAI(api_key=Config.API_KEY, base_url=Config.BASE_URL)
+
+        # 判断是否要流式返回：如果 Accept 包含 text/event-stream 则流式
+        wants_stream = "text/event-stream" in request.headers.get("Accept", "")
+
+        if wants_stream:
+            def generate():
+                full_reply = ""
+                try:
+                    stream = client.chat.completions.create(
+                        model=Config.MODEL_NAME,
+                        messages=[
+                            {"role": "system", "content": "你是 Slidev PPT 设计专家，只输出 Slidev Markdown 格式的内容。"},
+                            {"role": "user", "content": ppt_prompt},
+                        ],
+                        stream=True,
+                        temperature=0.8,
+                    )
+                    for chunk in stream:
+                        if not chunk.choices:
+                            continue
+                        delta = chunk.choices[0].delta
+                        token = delta.content if delta else None
+                        if token:
+                            full_reply += token
+                            yield f"data: {json.dumps({'token': token})}\n\n"
+                    yield "data: [DONE]\n\n"
+                except Exception as e:
+                    yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                    return
+
+                # 保存到会话历史
+                if session_id and full_reply:
+                    from services.database import add_message, session_exists, create_session
+                    if not session_exists(session_id):
+                        create_session(session_id)
+                    add_message(session_id, "user", f"[生成 PPT] 主题：{topic}")
+                    add_message(session_id, "assistant", full_reply)
+
+            return Response(
+                stream_with_context(generate()),
+                mimetype="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "X-Accel-Buffering": "no",
+                },
+            )
+        else:
+            # 一次性返回
+            try:
+                from openai import OpenAI
+                response = client.chat.completions.create(
+                    model=Config.MODEL_NAME,
+                    messages=[
+                        {"role": "system", "content": "你是 Slidev PPT 设计专家，只输出 Slidev Markdown 格式的内容。"},
+                        {"role": "user", "content": ppt_prompt},
+                    ],
+                    stream=False,
+                    temperature=0.8,
+                )
+                markdown = response.choices[0].message.content.strip()
+
+                # 清理可能的 markdown 代码块标记
+                if markdown.startswith("```"):
+                    markdown = re.sub(r'```\w*\n?', '', markdown).strip()
+
+                # 保存到会话历史
+                if session_id and markdown:
+                    from services.database import add_message, session_exists, create_session
+                    if not session_exists(session_id):
+                        create_session(session_id)
+                    add_message(session_id, "user", f"[生成 PPT] 主题：{topic}")
+                    add_message(session_id, "assistant", markdown)
+
+                return jsonify({
+                    "success": True,
+                    "topic": topic,
+                    "markdown": markdown,
+                    "session_id": session_id,
+                })
+            except Exception as e:
+                return jsonify({"error": f"PPT 生成失败: {str(e)}"}), 500
+
+    # ================================================================
+    # 路由：PPT 构建（Slidev markdown → 自包含 HTML → 发布到 textdb）
+    # ================================================================
+
+    @app.route("/api/ppt/build", methods=["POST"])
+    def api_ppt_build():
+        """将已生成的 PPT Markdown 构建为可访问的 HTML 页面"""
+        data = request.get_json(silent=True) or {}
+        topic = (data.get("topic") or "").strip()
+        session_id = sanitize_session_id((data.get("session_id") or "").strip())
+
+        if not topic:
+            return jsonify({"error": "请提供 PPT 主题"}), 400
+
+        # 从会话历史中查找最后一条 assistant 消息（应为 Slidev Markdown）
+        markdown = ""
+        if session_id:
+            from services.database import get_messages
+            msgs = get_messages(session_id)
+            for msg in reversed(msgs):
+                if msg["role"] == "assistant" and "---" in msg["content"]:
+                    markdown = msg["content"]
+                    break
+
+        if not markdown:
+            return jsonify({"error": "未找到 PPT 内容，请先生成 PPT"}), 400
+
+        try:
+            # 1. 构建为单个自包含 HTML
+            html = build_slidev(markdown)
+
+            # 2. 发布到 textdb
+            import uuid, urllib.request
+            key = f"ppt_{uuid.uuid4().hex[:8]}"
+            textdb_url = f"https://textdb.hunluan.space/update/"
+            req = urllib.request.Request(
+                textdb_url,
+                data=json.dumps({"key": key, "value": html}).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                pass
+
+            view_url = f"https://textdb.hunluan.space/p/{key}"
+
+            return jsonify({
+                "success": True,
+                "topic": topic,
+                "url": view_url,
+            })
+        except Exception as e:
+            return jsonify({"error": f"PPT 构建失败: {str(e)}"}), 500
 
     # ================================================================
     # 路由：发布到 textdb

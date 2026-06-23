@@ -1553,3 +1553,263 @@ a, button, .btn, .btn-send, .btn-clear, .btn-toggle-sidebar,
     color: #F5F0E6;
     border-color: #D62828;
 }
+
+/* ============================================================
+   文件上传按钮 — 构成主义风格
+   ============================================================ */
+.input-file-btns {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+.btn-upload {
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: 1.5px solid rgba(245,240,230,0.2);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+.btn-upload svg {
+    width: 16px;
+    height: 16px;
+    opacity: 0.45;
+    transition: opacity 0.2s ease;
+}
+.btn-upload:hover {
+    border-color: var(--red);
+    background: rgba(214,40,40,0.08);
+}
+.btn-upload:hover svg {
+    opacity: 1;
+}
+.btn-upload:active {
+    transform: scale(0.92);
+}
+.btn-upload.loading {
+    border-color: var(--indigo);
+    animation: uploadPulse 1s ease-in-out infinite;
+}
+.btn-upload.loading svg {
+    opacity: 1;
+}
+
+@keyframes uploadPulse {
+    0%, 100% { border-color: rgba(99,102,241,0.4); }
+    50% { border-color: var(--indigo); }
+}
+
+/* ============================================================
+   上传进度指示
+   ============================================================ */
+.upload-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    background: var(--black);
+    border-left: 4px solid var(--indigo);
+    animation: fadeSkew 0.25s ease;
+}
+.upload-progress-bar {
+    flex: 1;
+    height: 4px;
+    background: rgba(245,240,230,0.1);
+    position: relative;
+    overflow: hidden;
+}
+.upload-progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -30%;
+    width: 30%;
+    height: 100%;
+    background: var(--indigo);
+    animation: progressSlide 1.4s ease-in-out infinite;
+}
+@keyframes progressSlide {
+    0% { left: -30%; }
+    100% { left: 100%; }
+}
+.upload-progress-text {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--cream);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   文件分析结果消息
+   ============================================================ */
+.file-analysis-msg {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0 4px;
+}
+.file-analysis-icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    background: var(--red);
+}
+.file-analysis-icon svg {
+    width: 18px;
+    height: 18px;
+}
+.file-analysis-body {
+    flex: 1;
+    min-width: 0;
+}
+.file-analysis-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+.file-analysis-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--red);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.file-analysis-type {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--gray-light);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border: 1px solid rgba(107,107,107,0.2);
+    padding: 0 4px;
+}
+
+/* ============================================================
+   图片缩略图预览
+   ============================================================ */
+.image-preview-wrap {
+    margin: 6px 0 10px;
+    border: 2px solid var(--black);
+    max-width: 240px;
+    position: relative;
+    overflow: hidden;
+}
+.image-preview-wrap::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 3px solid var(--red);
+    pointer-events: none;
+    clip-path: polygon(0 0, 100% 0, 100% 6px, 6px 6px, 6px 100%, 0 100%);
+    z-index: 1;
+}
+.image-preview-wrap img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+.image-analysis-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+}
+.image-analysis-label svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+/* ============================================================
+   PPT 生成按钮 & 结果
+   ============================================================ */
+.ppt-build-area {
+    margin-top: 12px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.ppt-build-btn {
+    padding: 8px 16px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: var(--black);
+    color: var(--cream);
+    border: 2px solid var(--red);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.ppt-build-btn:hover {
+    background: var(--red);
+    color: var(--cream);
+    transform: skewX(-4deg);
+}
+.ppt-build-btn:active {
+    transform: skewX(-4deg) scale(0.96);
+}
+.ppt-build-btn svg {
+    width: 14px;
+    height: 14px;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+.ppt-topic-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: var(--red);
+    color: var(--cream);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+}
+
+/* ============================================================
+   上传操作行中的提示文本
+   ============================================================ */
+.upload-status-text {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--cream);
+    letter-spacing: 0.06em;
+    margin-left: 6px;
+    opacity: 0.6;
+}
+
+/* ============================================================
+   响应式：移动端上传按钮
+   ============================================================ */
+@media (max-width: 520px) {
+    .btn-upload {
+        width: 28px;
+        height: 28px;
+    }
+    .btn-upload svg {
+        width: 14px;
+        height: 14px;
+    }
+}
