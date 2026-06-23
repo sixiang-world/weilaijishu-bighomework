@@ -1692,18 +1692,12 @@ document.getElementById('docUploadInput').addEventListener('change', async funct
 
         progressEl.remove();
 
-        let errMsg = '';
-        try {
-            const errData = await res.json();
-            errMsg = errData.error || errData.message || '';
-        } catch (_) {}
+        const data = await res.json();
         if (!res.ok) {
             btn.classList.remove('loading');
-            showError(errMsg || '文档上传失败，请重试');
+            showError(data.error || data.message || '文档上传失败，请重试');
             return;
         }
-
-        const data = await res.json();
 
         // 移除欢迎消息
         const welcomeEl = document.getElementById('welcomeMessage');
